@@ -14,12 +14,14 @@ from app.api import (
     communication,
     test_drive,
     documents,
+    voice,
 )
 
 
 # ---------------------------------------------------------------------------
 # WebSocket connection manager
 # ---------------------------------------------------------------------------
+
 
 class ConnectionManager:
     """Manages active WebSocket connections per session."""
@@ -47,6 +49,7 @@ ws_manager = ConnectionManager()
 # ---------------------------------------------------------------------------
 # App lifecycle
 # ---------------------------------------------------------------------------
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -87,11 +90,13 @@ app.include_router(dashboard.router)
 app.include_router(communication.router)
 app.include_router(test_drive.router)
 app.include_router(documents.router)
+app.include_router(voice.router)
 
 
 # ---------------------------------------------------------------------------
 # WebSocket endpoint
 # ---------------------------------------------------------------------------
+
 
 @app.websocket("/ws/sessions/{session_id}")
 async def websocket_endpoint(websocket: WebSocket, session_id: str):
@@ -107,6 +112,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
 # ---------------------------------------------------------------------------
 # Health check
 # ---------------------------------------------------------------------------
+
 
 @app.get("/health")
 async def health_check():

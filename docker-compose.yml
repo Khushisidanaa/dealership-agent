@@ -41,9 +41,9 @@ services:
       MONGO_INITDB_DATABASE: dealership
     volumes:
       - mongo_data:/data/db
-    # Don't expose 27017 to host in production; backend talks via internal network
-    expose:
-      - "27017"
+    # Expose 27017 for local dev (when running uvicorn outside Docker)
+    ports:
+      - "27017:27017"
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s

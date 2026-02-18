@@ -25,14 +25,7 @@ async def init_db() -> None:
     _client = AsyncIOMotorClient(settings.mongodb_url)
     db = _client[settings.mongodb_db_name]
     await init_beanie(database=db, document_models=ALL_DOCUMENT_MODELS)
-    await ensure_indexes()
     _db_handler = DBHandler()
-
-
-async def ensure_indexes() -> None:
-    """Create indexes for all Beanie document models (safe to call on every startup)."""
-    for model in ALL_DOCUMENT_MODELS:
-        await model.build_indexes()
 
 
 def get_client() -> AsyncIOMotorClient:

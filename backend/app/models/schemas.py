@@ -272,6 +272,32 @@ class CallTriggerResponse(BaseModel):
     dealer_phone: str
 
 
+# ---------------------------------------------------------------------------
+# Voice API (standalone call endpoint)
+# ---------------------------------------------------------------------------
+
+
+class VoiceCallRequest(BaseModel):
+    """Params for initiating an AI voice call. Prompt and start_message are derived from user conversation."""
+
+    to_number: str = Field(..., description="E.164 phone number to call, e.g. +15551234567")
+    prompt: str = Field(
+        ...,
+        description="Agent context/instructions derived from user preferences (vehicle, budget, purpose, etc.)",
+    )
+    start_message: str = Field(
+        ...,
+        description="Opening line the agent says when the call connects (greeting)",
+    )
+
+
+class VoiceCallResponse(BaseModel):
+    call_id: str
+    status: str = "initiating"
+    to_number: str
+    twiml_url: str
+
+
 class TranscriptEntry(BaseModel):
     speaker: str
     text: str
