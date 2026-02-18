@@ -1,11 +1,67 @@
+# Optimized for Linode (Akamai hackathon) deployment.
+# Run: docker compose up -d
+# Backend: http://<linode-ip>:8000
+
 services:
-  mongodb:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dealership-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      MONGO_URI: mongodb://mongo:27017
+      MONGO_DB_NAME: dealership
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    # Linode-friendly limits (adjust for your plan: 1GB/2GB shared)
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+    networks:
+      - app
+
+  mongo:
     image: mongo:7
     container_name: dealership-mongo
-    ports:
-      - "27017:27017"
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: dealership
     volumes:
       - mongo_data:/data/db
+    # Don't expose 27017 to host in production; backend talks via internal network
+    expose:
+      - "27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    networks:
+      - app
 
 volumes:
   mongo_data:
+
+networks:
+  app:
+    driver: bridge

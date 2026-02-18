@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from typing import Optional
 from uuid import uuid4
 
+import pymongo
 from beanie import Document
 from pydantic import Field
 
@@ -27,6 +28,10 @@ class SessionDocument(Document):
 
     class Settings:
         name = "sessions"
+        indexes = [
+            "session_id",
+            [("created_at", pymongo.DESCENDING)],
+        ]
 
 
 class ChatMessageDocument(Document):
@@ -38,6 +43,10 @@ class ChatMessageDocument(Document):
 
     class Settings:
         name = "chat_messages"
+        indexes = [
+            "session_id",
+            [("session_id", pymongo.ASCENDING), ("timestamp", pymongo.ASCENDING)],
+        ]
 
 
 class SearchResultDocument(Document):
@@ -51,6 +60,11 @@ class SearchResultDocument(Document):
 
     class Settings:
         name = "search_results"
+        indexes = [
+            "search_id",
+            "session_id",
+            [("session_id", pymongo.ASCENDING), ("created_at", pymongo.DESCENDING)],
+        ]
 
 
 class ShortlistDocument(Document):
@@ -61,6 +75,7 @@ class ShortlistDocument(Document):
 
     class Settings:
         name = "shortlists"
+        indexes = ["session_id"]
 
 
 class CommunicationDocument(Document):
@@ -78,6 +93,10 @@ class CommunicationDocument(Document):
 
     class Settings:
         name = "communications"
+        indexes = [
+            "session_id",
+            [("session_id", pymongo.ASCENDING), ("vehicle_id", pymongo.ASCENDING)],
+        ]
 
 
 class TestDriveBookingDocument(Document):
@@ -95,6 +114,11 @@ class TestDriveBookingDocument(Document):
 
     class Settings:
         name = "test_drive_bookings"
+        indexes = [
+            "booking_id",
+            "session_id",
+            [("session_id", pymongo.ASCENDING), ("created_at", pymongo.DESCENDING)],
+        ]
 
 
 ALL_DOCUMENT_MODELS = [

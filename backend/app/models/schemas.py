@@ -212,3 +212,13 @@ class TestDriveStatusResponse(BaseModel):
     status: str
     confirmation_method: Optional[str] = None
     dealer_response: Optional[str] = None
+
+
+# ---------------------------------------------------------------------------
+# Document analysis (Foxit: Carfax, inspection reports, etc.)
+# ---------------------------------------------------------------------------
+
+class DocumentAnalysisResponse(BaseModel):
+    extracted_text: str
+    summary: Optional[str] = None
+    filename: str = ""

@@ -5,7 +5,16 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.models.database import init_db, close_db
-from app.api import sessions, preferences, chat, search, dashboard, communication, test_drive
+from app.api import (
+    sessions,
+    preferences,
+    chat,
+    search,
+    dashboard,
+    communication,
+    test_drive,
+    documents,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -76,6 +85,7 @@ app.include_router(search.router)
 app.include_router(dashboard.router)
 app.include_router(communication.router)
 app.include_router(test_drive.router)
+app.include_router(documents.router)
 
 
 # ---------------------------------------------------------------------------
