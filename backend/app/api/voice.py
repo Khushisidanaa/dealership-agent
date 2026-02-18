@@ -13,7 +13,14 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
+from fastapi import (
+    APIRouter,
+    HTTPException,
+    Query,
+    Request,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.responses import Response
 
 from app.config import get_settings
@@ -28,7 +35,9 @@ _call_context: dict[str, dict] = {}
 _transcript_dir = Path(__file__).parent.parent.parent / "transcripts"
 
 
-def _wss_url(base_url: str, path: str = "/api/voice/ws") -> str:
+def _wss_url(base_url: str, call_id: str) -> str:
+    """WebSocket URL with call_id in path (avoids query-string issues with ngrok/WebSocket)."""
+    path = f"/api/voice/ws/{call_id}"
     if base_url.startswith("https://"):
         return base_url.replace("https://", "wss://", 1) + path
     if base_url.startswith("http://"):
@@ -42,7 +51,15 @@ def _is_goodbye(text: str) -> bool:
     t = text.lower().strip()
     return any(
         phrase in t
-        for phrase in ("bye", "goodbye", "good bye", "good-by", "bye bye", "gotta go", "have to go")
+        for phrase in (
+            "bye",
+            "goodbye",
+            "good bye",
+            "good-by",
+            "bye bye",
+            "gotta go",
+            "have to go",
+        )
     )
 
 
@@ -72,7 +89,11 @@ from app.models.schemas import VoiceCallRequest, VoiceCallResponse
 async def initiate_call(req: VoiceCallRequest):
     settings = get_settings()
 
-    if not settings.twilio_account_sid or not settings.twilio_auth_token or not settings.twilio_phone_number:
+    if (
+        not settings.twilio_account_sid
+        or not settings.twilio_auth_token
+        or not settings.twilio_phone_number
+    ):
         raise HTTPException(status_code=503, detail="Twilio not configured")
 
     if not settings.deepgram_api_key:
@@ -98,6 +119,7 @@ async def initiate_call(req: VoiceCallRequest):
     twiml_url = f"{base}/api/voice/twiml?call_id={call_id}"
 
     from twilio.rest import Client
+
     client = Client(settings.twilio_account_sid, settings.twilio_auth_token)
     call = client.calls.create(
         to=req.to_number,
@@ -132,7 +154,7 @@ async def twiml_webhook(
         log.warning("Unknown call_id for TwiML: %s", call_id)
     settings = get_settings()
     base = settings.server_base_url.rstrip("/")
-    stream_url = f"{_wss_url(base)}?call_id={call_id}"
+    stream_url = _wss_url(base, call_id)
 
     body = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
@@ -175,7 +197,11 @@ async def _handle_twilio_voice(websocket: WebSocket, call_id: str):
             "language": "en",
             "listen": {"provider": {"type": "deepgram", "model": "nova-3"}},
             "think": {
-                "provider": {"type": "open_ai", "model": "gpt-4o-mini", "temperature": 0.7},
+                "provider": {
+                    "type": "open_ai",
+                    "model": "gpt-4o-mini",
+                    "temperature": 0.7,
+                },
                 "prompt": agent_prompt,
             },
             "speak": {"provider": {"type": "deepgram", "model": "aura-2-thalia-en"}},
@@ -279,15 +305,22 @@ async def _handle_twilio_voice(websocket: WebSocket, call_id: str):
         _call_context.pop(call_id, None)
 
 
-@router.websocket("/ws")
-async def voice_websocket(
-    websocket: WebSocket,
-    call_id: str = Query(..., alias="call_id"),
-):
-    """WebSocket endpoint for Twilio Media Stream."""
-    if call_id not in _call_context:
-        log.warning("Unknown call_id for WebSocket: %s", call_id)
-        await websocket.close(code=4004)
-        return
+@router.websocket("/ws/{call_id}")
+async def voice_websocket(websocket: WebSocket, call_id: str):
+    """WebSocket endpoint for Twilio Media Stream. call_id in path (like script's /ws/voice)."""
+    log.info(
+        "WebSocket /ws/%s connected, in_context=%s", call_id, call_id in _call_context
+    )
+
     await websocket.accept()
+
+    if call_id not in _call_context:
+        log.warning(
+            "Unknown call_id for WebSocket: %r (available: %s)",
+            call_id,
+            list(_call_context.keys()),
+        )
+        await websocket.close(code=1008)
+        return
+
     await _handle_twilio_voice(websocket, call_id)
