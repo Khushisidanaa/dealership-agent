@@ -8,7 +8,7 @@ Documents (stored in Mongo):
   - DealershipContactDocument (keyed by user_id + dealer_id)
 
 DB driver (app/models/database.py):
-  - init_db, close_db, ensure_indexes
+  - init_db, close_db
   - get_db_handler() -> DBHandler (create once at startup, pass around; insert/get/update/delete by model type)
   - get_client(), get_db() for raw access
   - find_one_by_keys(collection_name, **keys), find_many_by_keys(...) for index-backed search
@@ -19,7 +19,6 @@ User requirements (app/models/user_requirements.py):
 from app.models.database import (
     init_db,
     close_db,
-    ensure_indexes,
     get_db_handler,
     get_client,
     get_db,
@@ -49,7 +48,6 @@ from app.models import schemas
 __all__ = [
     "init_db",
     "close_db",
-    "ensure_indexes",
     "get_db_handler",
     "DBHandler",
     "get_client",

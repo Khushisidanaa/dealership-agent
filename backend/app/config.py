@@ -41,7 +41,11 @@ class Settings(BaseSettings):
     # Server
     server_base_url: str = "http://localhost:8000"
 
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+    model_config = {
+        "env_file": ".env",
+        "env_file_encoding": "utf-8",
+        "extra": "ignore",  # ignore extra env vars (e.g. TO_NUMBER, PORT from .env)
+    }
 
 
 @lru_cache

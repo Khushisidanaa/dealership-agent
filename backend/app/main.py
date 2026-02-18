@@ -14,6 +14,7 @@ from app.api import (
     communication,
     test_drive,
     documents,
+    voice,
 )
 
 
@@ -87,6 +88,7 @@ app.include_router(dashboard.router)
 app.include_router(communication.router)
 app.include_router(test_drive.router)
 app.include_router(documents.router)
+app.include_router(voice.router)
 
 
 # ---------------------------------------------------------------------------
