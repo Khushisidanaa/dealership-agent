@@ -4,7 +4,7 @@ from collections import defaultdict
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.models.database import init_db, close_db
+from app.models.database import init_db, close_db, get_db_handler
 from app.api import (
     sessions,
     preferences,
@@ -51,6 +51,7 @@ ws_manager = ConnectionManager()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
+    app.state.db = get_db_handler()
     yield
     await close_db()
 

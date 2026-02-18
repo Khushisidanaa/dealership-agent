@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import Enum
 from typing import Optional
 
 from pydantic import BaseModel, Field
@@ -14,18 +15,120 @@ class SessionResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Preferences
+# User requirements / preferences (stored in session.preferences)
+# ---------------------------------------------------------------------------
+
+class CarType(str, Enum):
+    SUV = "suv"
+    SEDAN = "sedan"
+    HATCHBACK = "hatchback"
+    COUPE = "coupe"
+    TRUCK = "truck"
+    VAN = "van"
+    WAGON = "wagon"
+    CONVERTIBLE = "convertible"
+    OTHER = "other"
+
+
+class PowerType(str, Enum):
+    GASOLINE = "gasoline"
+    DIESEL = "diesel"
+    HYBRID = "hybrid"
+    PLUGIN_HYBRID = "plugin_hybrid"
+    ELECTRIC = "electric"
+    EREV = "erev"  # extended-range electric
+    FLEX = "flex"
+    OTHER = "other"
+
+
+class FinanceOption(str, Enum):
+    CASH = "cash"
+    FINANCE = "finance"
+    LEASE = "lease"
+    UNDECIDED = "undecided"
+
+
+class RequirementTag(str, Enum):
+    """Use case / lifestyle: sporty, outdoor, family, etc."""
+    SPORTY = "sporty"
+    OUTDOOR = "outdoor"
+    FAMILY = "family"
+    STUDENT = "student"
+    COMMUTE = "commute"
+    LUXURY = "luxury"
+    OFFROAD = "offroad"
+    TOWING = "towing"
+    ECONOMY = "economy"
+    OTHER = "other"
+
+
+class UserRequirements(BaseModel):
+    """
+    Structured user requirements for car search and negotiation.
+    Stored in MongoDB (e.g. session.preferences or a dedicated collection).
+    """
+
+    # Price & budget
+    price_min: float = Field(default=0, ge=0, description="Minimum price (USD)")
+    price_max: float = Field(default=100_000, ge=0, description="Maximum price (USD)")
+    monthly_budget: Optional[float] = Field(default=None, ge=0, description="Max monthly payment if financing")
+    down_payment: Optional[float] = Field(default=None, ge=0, description="Planned down payment (USD)")
+
+    # Location & search area
+    zip_code: str = Field(default="", description="User zip for dealer distance")
+    max_distance_miles: int = Field(default=50, ge=1, le=500, description="Max distance to dealership (miles)")
+
+    # Brand & model
+    brand_preference: list[str] = Field(default_factory=list, description="Preferred makes, e.g. ['Toyota', 'Honda']")
+    model_preference: list[str] = Field(default_factory=list, description="Preferred models")
+    excluded_brands: list[str] = Field(default_factory=list, description="Makes to exclude")
+    excluded_models: list[str] = Field(default_factory=list, description="Models to exclude")
+
+    # Vehicle type & power
+    car_type: list[CarType] = Field(default_factory=list, description="Body types: SUV, sedan, etc.")
+    power_type: list[PowerType] = Field(default_factory=list, description="Powertrain: electric, hybrid, etc.")
+
+    # Year, condition, mileage
+    year_min: int = Field(default=2015, ge=1990, le=2030)
+    year_max: int = Field(default=2026, ge=1990, le=2030)
+    condition: str = Field(default="any", description="new | used | certified | any")
+    max_mileage: Optional[int] = Field(default=None, ge=0, description="Max odometer for used cars")
+
+    # Transmission & features
+    transmission: str = Field(default="any", description="auto | manual | any")
+    features: list[str] = Field(default_factory=list, description="Must-have features: sunroof, AWD, leather, etc.")
+    color_preference: list[str] = Field(default_factory=list, description="Preferred colors")
+
+    # Finance
+    finance: FinanceOption = Field(default=FinanceOption.UNDECIDED)
+    credit_score: Optional[int] = Field(default=None, ge=300, le=850, description="Approximate credit score if known")
+
+    # Use case / lifestyle (sporty, outdoor, family, student, etc.)
+    requirements: list[RequirementTag] = Field(default_factory=list, description="Sporty, outdoor, family, student, etc.")
+
+    # Trade-in
+    trade_in: Optional[str] = Field(default=None, description="Trade-in description or 'none'")
+
+    # Free-form
+    other_notes: str = Field(default="", description="Other requirements or notes")
+
+    model_config = {"use_enum_values": True}
+
+
+# ---------------------------------------------------------------------------
+# Preferences (API: submit preferences for a session)
 # ---------------------------------------------------------------------------
 
 class PreferencesRequest(BaseModel):
-    make: str
-    model: str
+    """Legacy/flat preferences submit; can be merged into UserRequirements."""
+    make: str = ""
+    model: str = ""
     year_min: int = 2015
     year_max: int = 2026
     price_min: float = 0
     price_max: float = 100_000
     condition: str = "any"  # "new" | "used" | "any"
-    zip_code: str
+    zip_code: str = ""
     radius_miles: int = 50
     max_mileage: Optional[int] = None
 
@@ -222,3 +325,36 @@ class DocumentAnalysisResponse(BaseModel):
     extracted_text: str
     summary: Optional[str] = None
     filename: str = ""
+
+
+# ---------------------------------------------------------------------------
+# Dealership contact (dealers we contacted for a user)
+# ---------------------------------------------------------------------------
+
+class DealershipContactStatus(str, Enum):
+    TEXT = "text"
+    CALL = "call"
+    RESPONDED = "responded"
+
+
+class DealerCar(BaseModel):
+    """Minimal car info at a dealership; expand into full model later."""
+    vehicle_id: str = ""
+    title: str = ""
+    price: Optional[float] = None
+    listing_url: str = ""
+
+
+class DealershipContact(BaseModel):
+    """
+    Data for a dealership we contacted. Keyed by user_id + dealer_id.
+    """
+    dealer_id: str
+    user_id: str
+    dealership_name: str = ""
+    address: str = ""
+    distance_miles: Optional[float] = Field(default=None, description="Rough distance from user location")
+    status: DealershipContactStatus = Field(default=DealershipContactStatus.TEXT)
+    cars: list[DealerCar] = Field(default_factory=list)
+
+    model_config = {"use_enum_values": True}

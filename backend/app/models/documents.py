@@ -121,6 +121,44 @@ class TestDriveBookingDocument(Document):
         ]
 
 
+class UserRequirementsDocument(Document):
+    """User requirements keyed by user_id (one doc per user)."""
+    user_id: str
+    requirements: dict = Field(default_factory=dict)  # shape of UserRequirements
+    created_at: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now)
+
+    class Settings:
+        name = "user_requirements"
+        indexes = [
+            "user_id",
+            pymongo.IndexModel([("user_id", pymongo.ASCENDING)], unique=True),
+        ]
+
+
+class DealershipContactDocument(Document):
+    """Dealerships we contacted for a user. Access by user_id and dealer_id."""
+    dealer_id: str
+    user_id: str
+    dealership_name: str = ""
+    address: str = ""
+    distance_miles: Optional[float] = None
+    status: str = "text"  # text | call | responded
+    cars: list[dict] = Field(default_factory=list)  # list of DealerCar-shaped dicts
+    created_at: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now)
+
+    class Settings:
+        name = "dealership_contacts"
+        indexes = [
+            "user_id",
+            pymongo.IndexModel(
+                [("user_id", pymongo.ASCENDING), ("dealer_id", pymongo.ASCENDING)],
+                unique=True,
+            ),
+        ]
+
+
 ALL_DOCUMENT_MODELS = [
     SessionDocument,
     ChatMessageDocument,
@@ -128,4 +166,6 @@ ALL_DOCUMENT_MODELS = [
     ShortlistDocument,
     CommunicationDocument,
     TestDriveBookingDocument,
+    UserRequirementsDocument,
+    DealershipContactDocument,
 ]
