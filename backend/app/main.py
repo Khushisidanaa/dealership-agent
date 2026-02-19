@@ -10,6 +10,7 @@ from app.api import (
     preferences,
     chat,
     search,
+    listings,
     dashboard,
     communication,
     test_drive,
@@ -86,6 +87,7 @@ app.include_router(sessions.router)
 app.include_router(preferences.router)
 app.include_router(chat.router)
 app.include_router(search.router)
+app.include_router(listings.router)
 app.include_router(dashboard.router)
 app.include_router(communication.router)
 app.include_router(test_drive.router)
