@@ -155,3 +155,34 @@ export interface DealerCallState {
   summary: CallSummary | null;
   message: string;
 }
+
+/** Listing from MarketCheck (listings API) */
+export interface ListingDealer {
+  name: string;
+  full_address: string;
+  street?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  phone?: string;
+  website?: string;
+}
+
+export interface ListingResult {
+  vehicle_id: string;
+  title: string;
+  heading?: string;
+  price?: number;
+  msrp?: number;
+  miles?: number;
+  dealer: ListingDealer;
+  dealer_distance_miles?: number;
+  listing_url: string;
+  inventory_type?: string;
+}
+
+export interface ListingsResponse {
+  results: ListingResult[];
+  total_found: number;
+  price_stats?: { avg_market_price: number; lowest_price: number; highest_price: number };
+}

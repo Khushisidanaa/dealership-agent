@@ -145,6 +145,14 @@ export const api = {
       ),
   },
 
+  listings: {
+    /** Get listings for the session using saved requirements (MarketCheck). */
+    forSession: (sessionId: string) =>
+      request<import("../types").ListingsResponse>(
+        `/api/listings/by-session/${sessionId}`
+      ),
+  },
+
   testDrive: {
     book: (
       sessionId: string,

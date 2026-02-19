@@ -1,9 +1,15 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.models.database import init_db, close_db, get_db_handler
+
+# Project root (backend/app/main.py -> backend -> root)
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+UI_DIST = PROJECT_ROOT / "ui" / "dist"
 from app.api import (
     sessions,
     preferences,
@@ -34,13 +40,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://localhost:3000",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:5174",
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -61,3 +61,8 @@ app.include_router(analyze.router)
 @app.get("/health")
 async def health_check():
     return {"status": "ok"}
+
+
+# Serve built UI (e.g. after make build-ui) so one server serves both API and frontend
+if UI_DIST.is_dir():
+    app.mount("/", StaticFiles(directory=str(UI_DIST), html=True), name="ui")
