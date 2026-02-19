@@ -1,78 +1,54 @@
-from fastapi import APIRouter, BackgroundTasks
+from fastapi import APIRouter
 
 from app.api.sessions import get_session_or_404
 from app.models.documents import SearchResultDocument
-from app.models.schemas import (
-    SearchTriggerResponse,
-    SearchStatusResponse,
-    SearchResultsResponse,
-    VehicleResult,
-    PriceStats,
-)
-from app.services.scraper_service import run_search
+from app.models.schemas import SearchResultsResponse, VehicleResult
+from app.services.scraper_service import search_cars
 
 router = APIRouter(prefix="/api/sessions/{session_id}/search", tags=["search"])
 
 
-@router.post("", response_model=SearchTriggerResponse, status_code=202)
-async def trigger_search(session_id: str, background_tasks: BackgroundTasks):
-    """Trigger web scraping with all accumulated preferences."""
+@router.get("/cars", response_model=SearchResultsResponse)
+async def search_cars_in_area(session_id: str):
+    """Find cars matching the user's requirements in the area. Results are stored for dashboard."""
     session = await get_session_or_404(session_id)
+    prefs = session.preferences or {}
+    extra = session.additional_filters or {}
+    requirements = {**prefs, **extra}
+    requirements.setdefault("zip_code", requirements.get("zip_code") or prefs.get("zip_code") or "90210")
+    requirements.setdefault("radius_miles", int(requirements.get("radius_miles") or requirements.get("max_distance_miles") or prefs.get("radius_miles") or 50))
 
-    search_doc = SearchResultDocument(session_id=session_id)
-    await search_doc.insert()
+    vehicles = await search_cars(requirements, [])
 
-    session.status = "searching"
-    await session.save()
+    price_stats = None
+    if vehicles:
+        prices = [v["price"] for v in vehicles]
+        price_stats = {
+            "avg_market_price": round(sum(prices) / len(prices), 2),
+            "lowest_price": min(prices),
+            "highest_price": max(prices),
+        }
 
-    # Run scraping in background
-    background_tasks.add_task(
-        run_search,
-        search_doc.search_id,
-        session.preferences or {},
-        session.additional_filters or {},
+    # Persist so dashboard can load shortlist + vehicles
+    search_doc = await SearchResultDocument.find_one(
+        SearchResultDocument.session_id == session_id,
+        SearchResultDocument.status == "completed",
     )
+    if search_doc:
+        search_doc.vehicles = vehicles
+        search_doc.price_stats = price_stats
+        await search_doc.save()
+    else:
+        search_doc = SearchResultDocument(
+            session_id=session_id,
+            status="completed",
+            progress_percent=100,
+            vehicles=vehicles,
+            price_stats=price_stats,
+        )
+        await search_doc.insert()
 
-    return SearchTriggerResponse(
-        search_id=search_doc.search_id,
-        status=search_doc.status,
-        estimated_time_seconds=30,
+    return SearchResultsResponse(
+        results=[VehicleResult(**v) for v in vehicles],
+        price_stats=price_stats,
     )
-
-
-@router.get("/{search_id}/status", response_model=SearchStatusResponse)
-async def get_search_status(session_id: str, search_id: str):
-    """Poll search progress."""
-    await get_session_or_404(session_id)
-
-    doc = await SearchResultDocument.find_one(
-        SearchResultDocument.search_id == search_id
-    )
-    if not doc:
-        from fastapi import HTTPException
-        raise HTTPException(status_code=404, detail="Search not found")
-
-    return SearchStatusResponse(
-        search_id=doc.search_id,
-        status=doc.status,
-        progress_percent=doc.progress_percent,
-        results_count=len(doc.vehicles),
-    )
-
-
-@router.get("/{search_id}/results", response_model=SearchResultsResponse)
-async def get_search_results(session_id: str, search_id: str):
-    """Get all scraped results with comparison data."""
-    await get_session_or_404(session_id)
-
-    doc = await SearchResultDocument.find_one(
-        SearchResultDocument.search_id == search_id
-    )
-    if not doc:
-        from fastapi import HTTPException
-        raise HTTPException(status_code=404, detail="Search not found")
-
-    vehicles = [VehicleResult(**v) for v in doc.vehicles]
-    price_stats = PriceStats(**doc.price_stats) if doc.price_stats else None
-
-    return SearchResultsResponse(results=vehicles, price_stats=price_stats)

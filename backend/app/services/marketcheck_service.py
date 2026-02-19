@@ -3,7 +3,7 @@ MarketCheck API service for searching vehicle listings.
 """
 
 import logging
-from typing import Any
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import httpx
 
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 MARKETCHECK_BASE = "https://api.marketcheck.com/v2/search/car/active"
 
 
-def _safe_int(val: Any) -> int | None:
+def _safe_int(val: Any) -> Optional[int]:
     if val is None:
         return None
     try:
@@ -32,7 +32,7 @@ def _safe_int(val: Any) -> int | None:
         return None
 
 
-def _safe_float(val: Any) -> float | None:
+def _safe_float(val: Any) -> Optional[float]:
     if val is None:
         return None
     try:
@@ -41,7 +41,7 @@ def _safe_float(val: Any) -> float | None:
         return None
 
 
-def _listing_to_result(listing: dict[str, Any], rank: int) -> VehicleListingResult:
+def _listing_to_result(listing: Dict[str, Any], rank: int) -> VehicleListingResult:
     """Map a MarketCheck listing to VehicleListingResult for frontend display."""
     build = listing.get("build") or {}
     dealer = listing.get("dealer") or {}
@@ -153,8 +153,8 @@ def _listing_to_result(listing: dict[str, Any], rank: int) -> VehicleListingResu
 
 
 def _compute_price_stats(
-    results: list[VehicleListingResult],
-) -> PriceStats | None:
+    results: List[VehicleListingResult],
+) -> Optional[PriceStats]:
     """Compute price stats from results."""
     prices = [r.price for r in results if r.price is not None and r.price > 0]
     if not prices:
@@ -170,17 +170,17 @@ async def search_listings(
     make: str,
     model: str,
     *,
-    year: int | None = None,
-    year_min: int | None = None,
-    year_max: int | None = None,
+    year: Optional[int] = None,
+    year_min: Optional[int] = None,
+    year_max: Optional[int] = None,
     zip_code: str = "",
     radius_miles: int = 50,
     car_type: str = "used",
-    price_min: int | None = None,
-    price_max: int | None = None,
-    max_mileage: int | None = None,
+    price_min: Optional[int] = None,
+    price_max: Optional[int] = None,
+    max_mileage: Optional[int] = None,
     rows: int = 20,
-) -> tuple[list[VehicleListingResult], int, PriceStats | None]:
+) -> Tuple[List[VehicleListingResult], int, Optional[PriceStats]]:
     """
     Search MarketCheck API for vehicle listings.
 
@@ -193,7 +193,7 @@ async def search_listings(
         logger.error("MARKETCHECK_API_KEY not configured")
         return [], 0, None
 
-    params: dict[str, str | int] = {
+    params: Dict[str, Union[str, int]] = {
         "api_key": api_key,
         "make": make,
         "model": model,
@@ -233,7 +233,7 @@ async def search_listings(
     total_found = data.get("num_found", 0)
     raw_listings = data.get("listings", [])
 
-    results: list[VehicleListingResult] = []
+    results: List[VehicleListingResult] = []
     for i, listing in enumerate(raw_listings, 1):
         try:
             vr = _listing_to_result(listing, rank=i)

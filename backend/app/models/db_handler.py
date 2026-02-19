@@ -10,7 +10,7 @@ Collection and keys are inferred from the Pydantic model type.
   db.insert(DealershipContact, user_id="u1", dealer_id="d1", data=contact)
   db.find(DealershipContact, user_id="u1")
 """
-from typing import Any, TypeVar
+from typing import Any, Optional, TypeVar
 
 from pydantic import BaseModel
 
@@ -69,7 +69,7 @@ class DBHandler:
         await doc.insert()
         return self._from_doc(model_cls, doc)
 
-    async def get(self, model_cls: type[T], **key_fields: Any) -> T | None:
+    async def get(self, model_cls: type[T], **key_fields: Any) -> Optional[T]:
         """Get one document by key fields. Returns None if not found."""
         doc_cls, _ = self._get_config(model_cls)
         query = self._key_query(model_cls, **key_fields)

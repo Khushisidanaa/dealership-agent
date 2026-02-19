@@ -6,6 +6,7 @@ Documents (stored in Mongo):
   - ShortlistDocument, CommunicationDocument, TestDriveBookingDocument,
   - UserRequirementsDocument (keyed by user_id)
   - DealershipContactDocument (keyed by user_id + dealer_id)
+  - DealershipDocument (directory from Maps; keyed by dealer_id)
 
 DB driver (app/models/database.py):
   - init_db, close_db
@@ -28,6 +29,7 @@ from app.models.database import (
 from app.models.db_handler import DBHandler
 from app.models.documents import (
     ALL_DOCUMENT_MODELS,
+    UserDocument,
     SessionDocument,
     ChatMessageDocument,
     SearchResultDocument,
@@ -36,6 +38,7 @@ from app.models.documents import (
     TestDriveBookingDocument,
     UserRequirementsDocument,
     DealershipContactDocument,
+    DealershipDocument,
 )
 from app.models.user_requirements import (
     create_user_requirements,
@@ -55,6 +58,7 @@ __all__ = [
     "find_one_by_keys",
     "find_many_by_keys",
     "ALL_DOCUMENT_MODELS",
+    "UserDocument",
     "SessionDocument",
     "ChatMessageDocument",
     "SearchResultDocument",
@@ -63,6 +67,7 @@ __all__ = [
     "TestDriveBookingDocument",
     "UserRequirementsDocument",
     "DealershipContactDocument",
+    "DealershipDocument",
     "create_user_requirements",
     "get_user_requirements",
     "update_user_requirements",
