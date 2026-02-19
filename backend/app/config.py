@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     # Deepgram
     deepgram_api_key: str = ""
 
+    # MarketCheck (vehicle listings API)
+    marketcheck_api_key: str = Field(default="", validation_alias="MARKETCHECK_API_KEY")
+
     # Foxit PDF Services (hackathon requirement: extract & analyze docs e.g. Carfax)
     foxit_client_id: str = Field(default="", validation_alias="FOXIT_CLIENT_ID")
     foxit_client_secret: str = Field(default="", validation_alias="FOXIT_CLIENT_SECRET")
