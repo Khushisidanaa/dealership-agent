@@ -1,5 +1,7 @@
 """Deepgram + Twilio voice agent for autonomous dealership calls."""
 
+from typing import Optional
+
 from app.config import get_settings
 from app.models.documents import CommunicationDocument
 
@@ -9,7 +11,7 @@ async def initiate_voice_call(
     dealer_phone: str,
     vehicle: dict,
     call_purpose: str,
-    negotiation_target_price: float | None = None,
+    negotiation_target_price: Optional[float] = None,
 ) -> None:
     """Initiate an autonomous AI voice call to a dealership.
 

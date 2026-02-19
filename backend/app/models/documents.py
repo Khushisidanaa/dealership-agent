@@ -15,12 +15,28 @@ def new_uuid() -> str:
     return str(uuid4())
 
 
+class UserDocument(Document):
+    """User stored in MongoDB. One doc per user; user_id is the primary key."""
+    user_id: str = Field(default_factory=new_uuid)
+    created_at: datetime = Field(default_factory=utc_now)
+
+    class Settings:
+        name = "users"
+        indexes = [
+            "user_id",
+            pymongo.IndexModel([("user_id", pymongo.ASCENDING)], unique=True),
+        ]
+
+
 class SessionDocument(Document):
     session_id: str = Field(default_factory=new_uuid)
     created_at: datetime = Field(default_factory=utc_now)
     status: str = Field(default="created")
 
-    # Static preferences
+    # User linked to this session (created when session is created)
+    user_id: Optional[str] = None
+
+    # Static preferences (kept in sync with user_requirements for backward compat)
     preferences: Optional[dict] = None
 
     # Additional filters from conversational agent
@@ -30,6 +46,7 @@ class SessionDocument(Document):
         name = "sessions"
         indexes = [
             "session_id",
+            "user_id",
             [("created_at", pymongo.DESCENDING)],
         ]
 
@@ -159,7 +176,36 @@ class DealershipContactDocument(Document):
         ]
 
 
+class DealershipDocument(Document):
+    """
+    Directory of dealerships (from Google/Apple Maps). Not per-user.
+    dealer_id = place_id (or external id) for linking with DealershipContact.
+    """
+    dealer_id: str  # e.g. Google place_id; unique
+    name: str = ""
+    address: str = ""
+    phone: str = ""
+    website: str = ""
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    source: str = "google_maps"  # google_maps | apple_maps
+    rating: Optional[float] = None
+    types: list[str] = Field(default_factory=list)  # e.g. ["car_dealer", "point_of_interest"]
+    raw: Optional[dict] = None  # extra from Maps API
+    created_at: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now)
+
+    class Settings:
+        name = "dealerships"
+        indexes = [
+            "dealer_id",
+            "source",
+            pymongo.IndexModel([("dealer_id", pymongo.ASCENDING)], unique=True),
+        ]
+
+
 ALL_DOCUMENT_MODELS = [
+    UserDocument,
     SessionDocument,
     ChatMessageDocument,
     SearchResultDocument,
@@ -168,4 +214,5 @@ ALL_DOCUMENT_MODELS = [
     TestDriveBookingDocument,
     UserRequirementsDocument,
     DealershipContactDocument,
+    DealershipDocument,
 ]

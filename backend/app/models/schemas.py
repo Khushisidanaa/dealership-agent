@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 
 class SessionResponse(BaseModel):
     session_id: str
+    user_id: str
     created_at: datetime
 
 
@@ -475,6 +476,24 @@ class DocumentAnalysisResponse(BaseModel):
     extracted_text: str
     summary: Optional[str] = None
     filename: str = ""
+
+
+# ---------------------------------------------------------------------------
+# Dealership directory (from Maps; not per-user)
+# ---------------------------------------------------------------------------
+
+class Dealership(BaseModel):
+    """Dealership directory entry from Google/Apple Maps."""
+    dealer_id: str
+    name: str = ""
+    address: str = ""
+    phone: str = ""
+    website: str = ""
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    source: str = "google_maps"
+    rating: Optional[float] = None
+    types: list[str] = Field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------

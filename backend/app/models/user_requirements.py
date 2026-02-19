@@ -3,10 +3,48 @@ CRUD for user requirements: create, edit, delete, and get by user_id.
 Storage is keyed by user_id (one requirements doc per user).
 """
 
-from typing import Optional
+from typing import Any, Optional
 
 from app.models.documents import UserRequirementsDocument, utc_now
 from app.models.schemas import UserRequirements
+
+
+def merge_filters_into_requirements(
+    current: UserRequirements,
+    updated_filters: dict[str, Any],
+) -> UserRequirements:
+    """
+    Merge LLM updated_filters (flat dict) into current UserRequirements.
+    Only updates keys that exist on UserRequirements; coerces types for lists/enums.
+    """
+    if not updated_filters:
+        return current
+    data = current.model_dump()
+    for key, value in updated_filters.items():
+        if key not in data:
+            continue
+        if value is None:
+            continue
+        if isinstance(data[key], list):
+            if isinstance(value, list):
+                data[key] = value
+            elif isinstance(value, str):
+                data[key] = [x.strip() for x in value.split(",") if x.strip()]
+            else:
+                data[key] = [value]
+        elif isinstance(data[key], int) and isinstance(value, (float, str)):
+            try:
+                data[key] = int(value)
+            except (TypeError, ValueError):
+                pass
+        elif isinstance(data[key], float) and isinstance(value, str):
+            try:
+                data[key] = float(value)
+            except (TypeError, ValueError):
+                pass
+        else:
+            data[key] = value
+    return UserRequirements.model_validate(data)
 
 
 async def create_user_requirements(user_id: str, requirements: UserRequirements) -> UserRequirements:

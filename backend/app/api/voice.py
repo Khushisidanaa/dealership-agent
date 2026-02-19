@@ -12,6 +12,7 @@ import logging
 import uuid
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 from fastapi import (
     APIRouter,
@@ -63,7 +64,7 @@ def _is_goodbye(text: str) -> bool:
     )
 
 
-def _write_transcript(transcript: list[tuple[str, str]]) -> Path | None:
+def _write_transcript(transcript: list[tuple[str, str]]) -> Optional[Path]:
     if not transcript:
         return None
     _transcript_dir.mkdir(parents=True, exist_ok=True)

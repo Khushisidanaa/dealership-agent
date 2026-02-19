@@ -5,7 +5,7 @@ Use Beanie Document.find_one() / find() for typed queries; use get_db() for raw 
 At startup: await init_db() then db_handler = get_db_handler(). Pass db_handler around
 or use app.state.db = get_db_handler() and use request.app.state.db in routes.
 """
-from typing import Any
+from typing import Any, Optional
 
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from beanie import init_beanie
@@ -14,12 +14,12 @@ from app.config import get_settings
 from app.models.documents import ALL_DOCUMENT_MODELS
 from app.models.db_handler import DBHandler
 
-_client: AsyncIOMotorClient | None = None
-_db_handler: DBHandler | None = None
+_client: Optional[AsyncIOMotorClient] = None
+_db_handler: Optional[DBHandler] = None
 
 
 async def init_db() -> None:
-    """Initialize MongoDB connection, Beanie ODM, indexes, and the DB handler."""
+    """Initialize MongoDB connection, Beanie ODM, and the DB handler. Indexes are created by init_beanie."""
     global _client, _db_handler
     settings = get_settings()
     _client = AsyncIOMotorClient(settings.mongodb_url)
@@ -48,7 +48,7 @@ def get_db_handler() -> DBHandler:
     return _db_handler
 
 
-async def find_one_by_keys(collection_name: str, **keys: Any) -> dict | None:
+async def find_one_by_keys(collection_name: str, **keys: Any) -> Optional[dict]:
     """
     Search a collection by key-value pairs (index-friendly when keys are indexed).
     Returns the first matching document or None.
@@ -61,7 +61,7 @@ async def find_many_by_keys(
     collection_name: str,
     *,
     limit: int = 100,
-    sort: list[tuple[str, int]] | None = None,
+    sort: Optional[list[tuple[str, int]]] = None,
     **keys: Any,
 ) -> list[dict]:
     """

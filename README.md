@@ -67,6 +67,18 @@ npm run dev
 
 Open http://localhost:5173 in your browser.
 
+## API: User vs Session
+
+- **User-based (no session required)**  
+  Use `user_id` (e.g. from your auth after login). Handles requirements, dealers, and car search without creating a session:
+  - `GET/POST/PUT/DELETE /api/users/{user_id}/requirements`
+  - `GET /api/users/{user_id}/dealers?q=...` (filter by dealer name or address)
+  - `GET /api/users/{user_id}/search/cars`
+- **Session-based**  
+  Create a session and use `session_id` for the conversational flow: preferences, chat, search, dashboard, communication, test-drive. Use this when you have a session (e.g. after login).
+
+Authentication is handled elsewhere; this API uses `user_id` or `session_id` as provided.
+
 ## Project Structure
 
 ```

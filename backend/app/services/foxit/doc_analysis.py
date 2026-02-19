@@ -15,7 +15,7 @@ Use for: Carfax PDFs, inspection reports, and other vehicle docs.
 import asyncio
 import logging
 from pathlib import Path
-from typing import BinaryIO
+from typing import BinaryIO, Union
 
 import httpx
 
@@ -139,7 +139,7 @@ async def get_document_text_for_agent(
     return await extract_text_from_file(content, filename)
 
 
-async def extract_text_from_path(file_path: str | Path) -> str:
+async def extract_text_from_path(file_path: Union[str, Path]) -> str:
     """Convenience: read file from disk and extract text."""
     path = Path(file_path)
     content = path.read_bytes()
