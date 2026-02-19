@@ -213,6 +213,130 @@ class SearchResultsResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Listings search (MarketCheck API)
+# ---------------------------------------------------------------------------
+
+
+class VehicleListingSearchRequest(BaseModel):
+    """User preferences for searching vehicle listings via MarketCheck."""
+
+    make: str = Field(..., description="Make, e.g. Toyota, Honda")
+    model: str = Field(..., description="Model, e.g. Camry, Accord")
+    year: Optional[int] = Field(default=None, ge=1990, le=2030, description="Target year; omit for any year")
+    year_min: Optional[int] = Field(default=None, ge=1990, le=2030, description="Minimum year")
+    year_max: Optional[int] = Field(default=None, ge=1990, le=2030, description="Maximum year")
+    zip_code: str = Field(..., description="ZIP code for proximity search")
+    radius_miles: int = Field(default=50, ge=1, le=500, description="Search radius in miles")
+    car_type: str = Field(
+        default="used",
+        description="Listing type: new | used | certified",
+    )
+    price_min: Optional[int] = Field(default=None, ge=0, description="Minimum price (USD)")
+    price_max: Optional[int] = Field(default=None, ge=0, description="Maximum price (USD)")
+    max_mileage: Optional[int] = Field(default=None, ge=0, description="Maximum odometer (miles)")
+    rows: int = Field(default=20, ge=1, le=50, description="Number of results to return")
+
+
+# Nested models for comprehensive listing display
+class CarfaxInfo(BaseModel):
+    one_owner: bool = False
+    clean_title: bool = False
+
+
+class ColorInfo(BaseModel):
+    exterior: str = ""
+    interior: str = ""
+    exterior_base: str = ""
+    interior_base: str = ""
+
+
+class DealerInfo(BaseModel):
+    id: Optional[int] = None
+    name: str = ""
+    phone: str = ""
+    website: str = ""
+    dealer_type: str = ""
+    street: str = ""
+    city: str = ""
+    state: str = ""
+    zip: str = ""
+    country: str = ""
+    latitude: Optional[str] = None
+    longitude: Optional[str] = None
+    full_address: str = ""
+
+
+class BuildInfo(BaseModel):
+    year: Optional[int] = None
+    make: str = ""
+    model: str = ""
+    trim: str = ""
+    version: str = ""
+    body_type: str = ""
+    vehicle_type: str = ""
+    transmission: str = ""
+    drivetrain: str = ""
+    fuel_type: str = ""
+    engine: str = ""
+    engine_size: Optional[float] = None
+    doors: Optional[int] = None
+    cylinders: Optional[int] = None
+    std_seating: str = ""
+    highway_mpg: Optional[int] = None
+    city_mpg: Optional[int] = None
+    powertrain_type: str = ""
+    made_in: str = ""
+
+
+class MediaInfo(BaseModel):
+    photo_links: list[str] = Field(default_factory=list)
+    photo_links_cached: list[str] = Field(default_factory=list)
+
+
+class VehicleListingResult(BaseModel):
+    """Comprehensive vehicle listing for frontend display."""
+
+    vehicle_id: str
+    vin: str = ""
+    rank: int
+    heading: str = ""
+    title: str = ""
+    price: Optional[float] = None
+    msrp: Optional[float] = None
+    miles: Optional[int] = None
+    stock_no: str = ""
+    days_on_market: Optional[int] = None
+
+    carfax: CarfaxInfo = Field(default_factory=CarfaxInfo)
+    colors: ColorInfo = Field(default_factory=ColorInfo)
+
+    seller_type: str = ""
+    inventory_type: str = ""
+
+    dealer: DealerInfo = Field(default_factory=DealerInfo)
+    dealer_distance_miles: Optional[float] = None
+
+    build: BuildInfo = Field(default_factory=BuildInfo)
+    media: MediaInfo = Field(default_factory=MediaInfo)
+    image_urls: list[str] = Field(
+        default_factory=list,
+        description="Primary display images (photo_links, fallback to cached)",
+    )
+
+    listing_url: str = ""
+    source: str = ""
+    in_transit: bool = False
+
+
+class VehicleListingSearchResponse(BaseModel):
+    """Response with vehicle listings and optional price stats for frontend display."""
+
+    results: list[VehicleListingResult]
+    total_found: int
+    price_stats: Optional[PriceStats] = None
+
+
+# ---------------------------------------------------------------------------
 # Shortlist / Dashboard
 # ---------------------------------------------------------------------------
 
