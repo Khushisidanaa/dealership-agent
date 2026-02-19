@@ -78,6 +78,21 @@
   font-weight: 600;
 }
 
+.dashboard-summary {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.dashboard-listing-row:hover {
+  background: var(--bg-tertiary);
+}
+
+.dashboard-link {
+  color: var(--accent);
+  font-weight: 500;
+}
+
 .dashboard-table-wrap {
   flex: 1;
   overflow: auto;
