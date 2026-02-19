@@ -1,13 +1,18 @@
 # Dealership Agent – run FastAPI and dependencies
 # For local API testing: make mongo-local then make run (Mongo on localhost:27017)
+# Deploy on Linode: make deploy (builds UI + runs backend on 0.0.0.0 for public access)
 
 PYTHON ?= python3
 VENV ?= .venv
 BACKEND = backend
+UI = ui
 PORT ?= 5000
+DEPLOY_PORT ?= 8000
 CERTS_DIR = .certs
+NODE ?= node
+NPM ?= npm
 
-.PHONY: install run run-http run-https mongo mongo-local stop help
+.PHONY: install run run-http run-https mongo mongo-local stop help build-ui deploy deploy-run
 
 help:
 	@echo "  make mongo-local  Start MongoDB on localhost:27017 (for make run)"
@@ -16,6 +21,9 @@ help:
 	@echo "  make run-https   Start FastAPI over HTTPS (self-signed cert)"
 	@echo "  make install     Install backend deps"
 	@echo "  make stop        Stop Docker stack"
+	@echo "  make build-ui    Build React UI into ui/dist (for deploy)"
+	@echo "  make deploy      Build UI + install backend deps (run deploy-run after)"
+	@echo "  make deploy-run  Run app on 0.0.0.0:$(DEPLOY_PORT) (public); run after make deploy"
 
 # Use public PyPI so install works even if pip is pointed at a custom index (e.g. Artifactory)
 install:
@@ -50,3 +58,22 @@ $(CERTS_DIR)/key.pem $(CERTS_DIR)/cert.pem:
 
 stop:
 	docker compose down
+
+# --- Linode / production deploy ---
+
+build-ui:
+	@echo "Building UI..."
+	cd $(UI) && $(NPM) ci && $(NPM) run build
+	@echo "UI built at $(UI)/dist"
+
+# Prepare for deploy: install backend deps and build UI. Run once on the server.
+deploy: install build-ui
+	@echo "Deploy ready. Run: make deploy-run"
+	@echo "Then open http://<this-machine-ip>:$(DEPLOY_PORT)"
+
+# Run the app bound to 0.0.0.0 so it is reachable from the public internet.
+# Run this on the Linode VM (after make deploy). Use tmux/screen or systemd to keep it running.
+deploy-run:
+	@echo "Starting app on http://0.0.0.0:$(DEPLOY_PORT) (public)"
+	@echo "Press Ctrl+C to stop."
+	cd $(BACKEND) && $(PYTHON) -m uvicorn app.main:app --host 0.0.0.0 --port $(DEPLOY_PORT)
