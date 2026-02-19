@@ -74,7 +74,11 @@ export interface SearchStatusResponse {
 
 export interface SearchResultsResponse {
   results: VehicleResult[];
-  price_stats?: { avg_market_price: number; lowest_price: number; highest_price: number };
+  price_stats?: {
+    avg_market_price: number;
+    lowest_price: number;
+    highest_price: number;
+  };
 }
 
 /** Grouped by dealer for dashboard table */
@@ -95,6 +99,61 @@ export interface TestDriveBooking {
   scheduled_date: string;
   scheduled_time: string;
   status: string;
+}
+
+export interface CallSummary {
+  is_available: boolean | null;
+  condition: Record<string, unknown>;
+  pricing: {
+    listed_price: number;
+    best_quoted_price: number | null;
+    is_negotiable: boolean;
+    out_the_door_price: number | null;
+  };
+  financing: {
+    available: boolean;
+    apr_range: string | null;
+  };
+  dealer_impression: {
+    responsiveness: string;
+    willingness_to_deal: string;
+  };
+  red_flags: string[];
+  key_takeaways: string;
+  recommendation: string;
+}
+
+export interface TopVehicle {
+  rank: number;
+  vehicle_id: string;
+  title: string;
+  price: number;
+  mileage: number | null;
+  dealer_name: string;
+  dealer_phone: string;
+  listing_url: string;
+  features: string[];
+  overall_score: number;
+  final_score: number;
+  image_urls: string[];
+  call_summary: CallSummary;
+}
+
+export type DealerCallStatus =
+  | "pending"
+  | "calling"
+  | "connected"
+  | "done"
+  | "failed";
+
+export interface DealerCallState {
+  vehicle_id: string;
+  dealer_name: string;
+  title: string;
+  status: DealerCallStatus;
+  transcript_text: string;
+  summary: CallSummary | null;
+  message: string;
 }
 
 /** Listing from MarketCheck (listings API) */

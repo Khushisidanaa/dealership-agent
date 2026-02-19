@@ -20,6 +20,7 @@ from app.api import (
     test_drive,
     users,
     voice,
+    analyze,
 )
 
 
@@ -39,7 +40,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Same-origin when UI is served from FastAPI; allow any for flexibility
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -54,6 +55,7 @@ app.include_router(dashboard.router)
 app.include_router(test_drive.router)
 app.include_router(users.router)
 app.include_router(voice.router)
+app.include_router(analyze.router)
 
 
 @app.get("/health")

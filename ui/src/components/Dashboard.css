@@ -3,7 +3,8 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  padding: 1rem;
+  padding: 1.5rem;
+  overflow-y: auto;
 }
 
 .dashboard--loading {
@@ -19,18 +20,44 @@
   border: 3px solid var(--border);
   border-top-color: var(--accent);
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  animation: dash-spin 0.8s linear infinite;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+@keyframes dash-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
+
+/* ── Toolbar ── */
 
 .dashboard-toolbar {
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
   flex-shrink: 0;
+}
+
+.dashboard-stats {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+  margin-right: 0.5rem;
+}
+
+.dashboard-stat {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.dashboard-stat-sep {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--text-muted);
 }
 
 .dashboard-back,
@@ -41,6 +68,8 @@
   background: var(--bg-secondary);
   color: var(--text-primary);
   font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
 }
 
 .dashboard-back:hover,
@@ -60,7 +89,7 @@
 
 .dashboard-empty {
   text-align: center;
-  padding: 2rem;
+  padding: 3rem 2rem;
   color: var(--text-secondary);
 }
 
@@ -76,240 +105,360 @@
   border: none;
   border-radius: var(--radius-sm);
   font-weight: 600;
+  cursor: pointer;
 }
 
-.dashboard-summary {
-  margin: 0 0 0.75rem;
-  font-size: 0.9rem;
-  color: var(--text-secondary);
+/* ── Dealer Sections ── */
+
+.dashboard-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
 }
 
-.dashboard-listing-row:hover {
-  background: var(--bg-tertiary);
-}
-
-.dashboard-link {
-  color: var(--accent);
-  font-weight: 500;
-}
-
-.dashboard-table-wrap {
-  flex: 1;
-  overflow: auto;
+.dashboard-section {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-card);
+  overflow: hidden;
 }
 
-.dashboard-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9rem;
-}
-
-.dashboard-table th {
-  text-align: left;
-  padding: 0.75rem 1rem;
-  background: var(--bg-tertiary);
-  color: var(--text-secondary);
-  font-weight: 600;
-  border-bottom: 1px solid var(--border);
-}
-
-.dashboard-table td {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--border);
-}
-
-.dashboard-cell-distance {
-  white-space: nowrap;
-}
-
-.dashboard-cell-address {
-  max-width: 220px;
-  color: var(--text-secondary);
-}
-
-.dashboard-dealer-row {
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.dashboard-dealer-row:hover {
-  background: var(--bg-tertiary);
-}
-
-.dashboard-cell-expand {
-  width: 32px;
-  padding-right: 0;
-}
-
-.dashboard-expand-icon {
-  display: inline-block;
-  transition: transform 0.2s;
-  color: var(--text-muted);
-}
-
-.dashboard-expand-icon.expanded {
-  transform: rotate(90deg);
-}
-
-.dashboard-dealer-name {
-  font-weight: 600;
-  margin-right: 0.5rem;
-}
-
-.dashboard-badge {
-  display: inline-block;
-  padding: 0.2rem 0.5rem;
-  border-radius: 999px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  margin-left: 0.25rem;
-}
-
-.dashboard-badge.small {
-  font-size: 0.65rem;
-  padding: 0.15rem 0.35rem;
-}
-
-.dashboard-badge--appointment {
-  background: rgba(74, 222, 128, 0.2);
-  color: var(--success);
-}
-
-.dashboard-badge--contact {
-  background: rgba(251, 191, 36, 0.2);
-  color: var(--warning);
-}
-
-.dashboard-cars-row td {
-  padding: 0;
-  border-bottom: 1px solid var(--border);
-  vertical-align: top;
-}
-
-.dashboard-cars-inner {
-  padding: 0 1rem 1rem 2.5rem;
+.dashboard-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
   background: var(--bg-secondary);
-}
-
-.dashboard-cars-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.85rem;
-}
-
-.dashboard-cars-table th {
-  text-align: left;
-  padding: 0.5rem 0.75rem;
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
-.dashboard-cars-table td {
-  padding: 0.5rem 0.75rem;
   border-bottom: 1px solid var(--border);
 }
 
-.dashboard-car-row {
+.dashboard-section-title h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.dashboard-section-addr {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.dashboard-section-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.dashboard-section-dist {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.dashboard-section-count {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* ── Card Grid ── */
+
+.dashboard-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+}
+
+.dashboard-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+  overflow: hidden;
   cursor: pointer;
-  transition: background 0.15s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s,
+    border-color 0.2s;
 }
 
-.dashboard-car-row:hover {
+.dashboard-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  border-color: var(--accent);
+}
+
+/* ── Card Image ── */
+
+.dashboard-card-img-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
   background: var(--bg-tertiary);
+  overflow: hidden;
 }
 
-.dashboard-car-actions {
+.dashboard-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.dashboard-card-badge {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.dashboard-card-badge--booked {
+  background: rgba(74, 222, 128, 0.9);
+  color: #0a2e14;
+}
+
+.dashboard-card-badge--contacted {
+  background: rgba(251, 191, 36, 0.9);
+  color: #3b2800;
+}
+
+/* ── Card Body ── */
+
+.dashboard-card-body {
+  padding: 0.85rem 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.dashboard-card-title {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.dashboard-card-price {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.dashboard-card-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.dashboard-card-details span {
+  position: relative;
+  padding-right: 0.5rem;
+}
+
+.dashboard-card-details span:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+/* ── Feature Tags ── */
+
+.dashboard-card-features {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
-  align-items: center;
+  margin-top: 0.15rem;
 }
 
-.dashboard-car-btn-test {
-  padding: 0.25rem 0.5rem;
+.dashboard-card-tag {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: 0.68rem;
+  font-weight: 500;
+  border: 1px solid var(--border);
+}
+
+/* ── Card Actions ── */
+
+.dashboard-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
+.dashboard-card-btn {
+  padding: 0.4rem 0.8rem;
   background: var(--accent);
   color: var(--bg-primary);
   border: none;
   border-radius: var(--radius-sm);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.dashboard-card-btn:hover {
+  background: var(--accent-hover);
+}
+
+.dashboard-card-link {
+  font-size: 0.78rem;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.dashboard-card-link:hover {
+  text-decoration: underline;
+}
+
+.dashboard-card-booked-info {
+  font-size: 0.78rem;
+  color: var(--success);
   font-weight: 600;
 }
 
-.dashboard-car-btn-test:hover {
-  background: var(--accent-hover);
-}
+/* ── Detail Overlay ── */
 
 .dashboard-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.65);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 200;
   padding: 1rem;
+  backdrop-filter: blur(4px);
 }
 
 .dashboard-detail-panel {
+  position: relative;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  max-width: 440px;
+  max-width: 520px;
   width: 100%;
-  max-height: 85vh;
+  max-height: 90vh;
   overflow: auto;
 }
 
-.dashboard-detail-header {
+.dashboard-detail-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--border);
-}
-
-.dashboard-detail-header h2 {
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 600;
-}
-
-.dashboard-detail-close {
-  padding: 0.25rem 0.5rem;
-  background: transparent;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
   border: none;
-  color: var(--text-secondary);
-  font-size: 1.5rem;
-  line-height: 1;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+  z-index: 2;
+  transition: background 0.15s;
 }
 
 .dashboard-detail-close:hover {
-  color: var(--text-primary);
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.dashboard-detail-img-wrap {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: var(--bg-tertiary);
+  overflow: hidden;
+}
+
+.dashboard-detail-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .dashboard-detail-body {
   padding: 1.25rem;
 }
 
-.dashboard-detail-body p {
-  margin: 0 0 0.5rem;
-  font-size: 0.9rem;
+.dashboard-detail-body h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.15rem;
+  font-weight: 700;
 }
 
-.dashboard-btn-test-drive {
-  margin-top: 1rem;
+.dashboard-detail-price {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+
+.dashboard-detail-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.75rem;
+}
+
+.dashboard-detail-features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.dashboard-detail-issues {
+  font-size: 0.85rem;
+  color: var(--error);
+  margin-bottom: 0.75rem;
+}
+
+.dashboard-detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.dashboard-detail-actions .dashboard-card-btn {
+  flex: 1;
   padding: 0.6rem 1rem;
-  width: 100%;
-  background: var(--accent);
-  color: var(--bg-primary);
-  border: none;
-  border-radius: var(--radius-sm);
-  font-weight: 600;
+  font-size: 0.85rem;
+  text-align: center;
 }
 
-.dashboard-btn-test-drive:hover {
-  background: var(--accent-hover);
+.dashboard-detail-actions .dashboard-card-link {
+  font-size: 0.85rem;
 }
