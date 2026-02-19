@@ -185,6 +185,53 @@ export interface TestDriveStatus {
 }
 
 // ---------------------------------------------------------------------------
+// Analyze (dealer calls + summaries + top 3)
+// ---------------------------------------------------------------------------
+
+export interface CallSummary {
+  is_available: boolean | null;
+  condition: Record<string, unknown>;
+  pricing: {
+    listed_price: number;
+    best_quoted_price: number | null;
+    is_negotiable: boolean;
+    out_the_door_price: number | null;
+  };
+  financing: {
+    available: boolean;
+    apr_range: string | null;
+  };
+  dealer_impression: {
+    responsiveness: string;
+    willingness_to_deal: string;
+  };
+  red_flags: string[];
+  key_takeaways: string;
+  recommendation: string;
+}
+
+export interface TopVehicle {
+  rank: number;
+  vehicle_id: string;
+  title: string;
+  price: number;
+  mileage: number | null;
+  dealer_name: string;
+  dealer_phone: string;
+  listing_url: string;
+  features: string[];
+  overall_score: number;
+  final_score: number;
+  image_urls: string[];
+  call_summary: CallSummary;
+}
+
+export interface AnalyzeEvent {
+  type: string;
+  data: Record<string, unknown>;
+}
+
+// ---------------------------------------------------------------------------
 // WebSocket
 // ---------------------------------------------------------------------------
 

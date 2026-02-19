@@ -35,6 +35,9 @@ router = APIRouter(prefix="/api/voice", tags=["voice"])
 _call_context: dict[str, dict] = {}
 _transcript_dir = Path(__file__).parent.parent.parent / "transcripts"
 
+# Completed call results keyed by call_id.  Populated when the WS bridge finishes.
+_completed_calls: dict[str, dict] = {}
+
 
 def _wss_url(base_url: str, call_id: str) -> str:
     """WebSocket URL with call_id in path (avoids query-string issues with ngrok/WebSocket)."""
@@ -120,14 +123,20 @@ async def initiate_call(req: VoiceCallRequest):
     twiml_url = f"{base}/api/voice/twiml?call_id={call_id}"
 
     from twilio.rest import Client
+    from twilio.base.exceptions import TwilioRestException
 
-    client = Client(settings.twilio_account_sid, settings.twilio_auth_token)
-    call = client.calls.create(
-        to=req.to_number,
-        from_=settings.twilio_phone_number,
-        url=twiml_url,
-        timeout=30,
-    )
+    try:
+        client = Client(settings.twilio_account_sid, settings.twilio_auth_token)
+        call = client.calls.create(
+            to=req.to_number,
+            from_=settings.twilio_phone_number,
+            url=twiml_url,
+            timeout=30,
+        )
+    except TwilioRestException as exc:
+        log.error("Twilio call failed: %s", exc.msg)
+        _call_context.pop(call_id, None)
+        raise HTTPException(status_code=502, detail=f"Twilio error: {exc.msg}")
 
     log.info("Call initiated: %s -> %s (call_id=%s)", call.sid, req.to_number, call_id)
 
@@ -274,6 +283,8 @@ async def _handle_twilio_voice(websocket: WebSocket, call_id: str):
                     inbuffer = inbuffer[BUFFER_SIZE:]
         except WebSocketDisconnect:
             pass
+        except RuntimeError:
+            pass
         except Exception as e:
             log.exception("Twilio receiver: %s", e)
         finally:
@@ -301,9 +312,31 @@ async def _handle_twilio_voice(websocket: WebSocket, call_id: str):
             await websocket.close()
         except Exception:
             pass
+        _completed_calls[call_id] = {
+            "status": "completed",
+            "transcript": list(transcript),
+            "transcript_text": "\n".join(
+                f"{'Agent' if r == 'agent' else 'Dealer'}: {c}" for r, c in transcript
+            ),
+        }
         if transcript:
             _write_transcript(transcript)
         _call_context.pop(call_id, None)
+
+
+@router.get("/call/{call_id}")
+async def get_call_result(call_id: str):
+    """Poll for a completed call transcript."""
+    if call_id in _completed_calls:
+        return _completed_calls[call_id]
+    if call_id in _call_context:
+        return {"status": "in_progress", "transcript_text": ""}
+    return {"status": "unknown", "transcript_text": ""}
+
+
+def get_completed_calls() -> dict[str, dict]:
+    """Access from other modules (e.g. the analyze endpoint)."""
+    return _completed_calls
 
 
 @router.websocket("/ws/{call_id}")

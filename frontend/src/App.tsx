@@ -3,6 +3,7 @@ import AppLayout from "./components/Layout/AppLayout";
 import Questionnaire from "./components/Questionnaire/Questionnaire";
 import ChatPanel from "./components/Chat/ChatPanel";
 import ResultsList from "./components/Results/ResultsList";
+import AnalyzingView from "./components/Analyze/AnalyzingView";
 import DashboardView from "./components/Dashboard/DashboardView";
 import TestDriveForm from "./components/TestDrive/TestDriveForm";
 import * as api from "./services/api";
@@ -12,6 +13,7 @@ import type {
   Vehicle,
   PriceStats,
   CommunicationStatus,
+  TopVehicle,
 } from "./types";
 
 type Step =
@@ -19,6 +21,7 @@ type Step =
   | "chat"
   | "searching"
   | "results"
+  | "analyzing"
   | "dashboard"
   | "testdrive";
 
@@ -43,6 +46,9 @@ const App = () => {
   // Dashboard
   const [shortlist, setShortlist] = useState<Vehicle[]>([]);
   const [commStatus, setCommStatus] = useState<CommunicationStatus[]>([]);
+
+  // Top 3 from analysis
+  const [top3Vehicles, setTop3Vehicles] = useState<TopVehicle[]>([]);
 
   // Test drive
   const [testDriveVehicleId, setTestDriveVehicleId] = useState<string | null>(
@@ -151,16 +157,49 @@ const App = () => {
     setIsLoading(true);
     try {
       await api.createShortlist(sessionId, selectedIds);
-      const dashboard = await api.getDashboard(sessionId);
-      setShortlist(dashboard.shortlist);
-      setCommStatus(dashboard.communication_status);
-      setStep("dashboard");
+      setStep("analyzing");
     } catch (err) {
       console.error("Shortlist error:", err);
     } finally {
       setIsLoading(false);
     }
   }, [sessionId, selectedIds]);
+
+  const handleAnalysisComplete = useCallback(
+    async (top3: TopVehicle[]) => {
+      setTop3Vehicles(top3);
+      if (!sessionId) return;
+      try {
+        const dashboard = await api.getDashboard(sessionId);
+        setShortlist(dashboard.shortlist);
+        setCommStatus(dashboard.communication_status);
+      } catch {
+        const asVehicles: Vehicle[] = top3.map((v) => ({
+          vehicle_id: v.vehicle_id,
+          rank: v.rank,
+          title: v.title,
+          price: v.price,
+          mileage: v.mileage,
+          condition: "",
+          dealer_name: v.dealer_name,
+          dealer_phone: v.dealer_phone,
+          dealer_address: "",
+          dealer_distance_miles: null,
+          listing_url: v.listing_url,
+          image_urls: v.image_urls,
+          features: v.features,
+          condition_score: 0,
+          price_score: 0,
+          overall_score: v.overall_score,
+          known_issues: [],
+          source: "",
+        }));
+        setShortlist(asVehicles);
+      }
+      setStep("dashboard");
+    },
+    [sessionId],
+  );
 
   // ---------------------------------------------------------------------------
   // Step 4: Dashboard actions
@@ -260,6 +299,14 @@ const App = () => {
           onToggleSelect={handleToggleSelect}
           onShortlist={handleShortlist}
           isLoading={isLoading}
+        />
+      )}
+
+      {step === "analyzing" && sessionId && (
+        <AnalyzingView
+          sessionId={sessionId}
+          totalVehicles={selectedIds.length || vehicles.length}
+          onComplete={handleAnalysisComplete}
         />
       )}
 

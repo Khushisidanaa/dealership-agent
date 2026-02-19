@@ -1,0 +1,622 @@
+.analyzing {
+  padding: 1.5rem;
+  max-width: 1280px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ---- Progress Header ---- */
+
+.analyzing-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.analyzing-header h2 {
+  margin: 0 0 1rem;
+  font-size: 1.4rem;
+}
+
+.analyzing-progress-bar {
+  width: 100%;
+  max-width: 480px;
+  height: 6px;
+  background: var(--bg-tertiary);
+  border-radius: 999px;
+  margin: 0 auto 0.5rem;
+  overflow: hidden;
+}
+
+.analyzing-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 0.5s ease;
+}
+
+.analyzing-progress-text {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* ---- Connecting / Pre-call state ---- */
+
+.analyzing-connecting {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  padding: 2rem 0;
+}
+
+.connecting-animation {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  height: 120px;
+}
+
+.connecting-phone {
+  color: var(--accent);
+  animation: phone-ring 1.5s ease-in-out infinite;
+  z-index: 2;
+}
+
+@keyframes phone-ring {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  10% {
+    transform: rotate(-12deg);
+  }
+  20% {
+    transform: rotate(12deg);
+  }
+  30% {
+    transform: rotate(-8deg);
+  }
+  40% {
+    transform: rotate(8deg);
+  }
+  50% {
+    transform: rotate(0deg);
+  }
+}
+
+.connecting-waves {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wave {
+  position: absolute;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  opacity: 0;
+  animation: wave-expand 2s ease-out infinite;
+}
+
+.wave-1 {
+  width: 60px;
+  height: 60px;
+  animation-delay: 0s;
+}
+.wave-2 {
+  width: 60px;
+  height: 60px;
+  animation-delay: 0.5s;
+}
+.wave-3 {
+  width: 60px;
+  height: 60px;
+  animation-delay: 1s;
+}
+
+@keyframes wave-expand {
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+.connecting-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 340px;
+}
+
+.connecting-step {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  transition: color 0.3s;
+}
+
+.connecting-step--active {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.step-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  flex-shrink: 0;
+  opacity: 0.4;
+}
+
+.connecting-skeleton-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  max-width: 600px;
+}
+
+.skeleton-card {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  align-items: center;
+}
+
+.skeleton-thumb {
+  width: 80px;
+  height: 60px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  flex-shrink: 0;
+}
+
+.skeleton-lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.skeleton-line {
+  height: 12px;
+  border-radius: 6px;
+  background: var(--bg-tertiary);
+}
+
+.skeleton-line--wide {
+  width: 70%;
+}
+.skeleton-line--medium {
+  width: 50%;
+}
+.skeleton-line--narrow {
+  width: 30%;
+}
+
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.06) 50%,
+    transparent 100%
+  );
+  animation: shimmer-slide 1.5s infinite;
+}
+
+@keyframes shimmer-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ---- Dealer Call Cards ---- */
+
+.analyzing-calls {
+  margin-bottom: 2.5rem;
+}
+
+.analyzing-calls h3 {
+  margin: 0 0 1rem;
+  font-size: 1.1rem;
+}
+
+.call-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.call-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  transition: border-color 0.3s;
+}
+
+.call-card--calling {
+  border-color: var(--warning);
+}
+
+.call-card--connected {
+  border-color: var(--accent);
+}
+
+.call-card--done {
+  border-color: var(--success);
+}
+
+.call-card--failed {
+  border-color: var(--error);
+}
+
+.call-card-top {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.call-card-thumb {
+  width: 80px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  flex-shrink: 0;
+}
+
+.call-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.call-card-dealer {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.call-card-vehicle {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.call-card-status {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-top: 0.25rem;
+}
+
+/* Pulse dot */
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--warning);
+  animation: pulse 1.2s infinite;
+}
+
+.pulse-dot--active {
+  background: var(--accent);
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.3);
+  }
+}
+
+/* ---- Call Summary inside card ---- */
+
+.call-card-summary {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.call-summary-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.call-summary-label {
+  color: var(--text-muted);
+}
+
+.call-summary-value {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.call-summary-takeaway {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+  line-height: 1.4;
+}
+
+.call-summary-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.25rem;
+}
+
+.tag-yes {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  background: rgba(74, 222, 128, 0.15);
+  color: var(--success);
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.tag-no {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  background: rgba(248, 113, 113, 0.15);
+  color: var(--error);
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.tag-negotiable {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  background: rgba(232, 184, 74, 0.15);
+  color: var(--accent);
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.tag-finance {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  background: rgba(96, 165, 250, 0.15);
+  color: #60a5fa;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.tag-flag {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  background: rgba(248, 113, 113, 0.1);
+  color: var(--error);
+  border-radius: 999px;
+}
+
+/* ---- Transcript ---- */
+
+.call-card-transcript-toggle {
+  margin-top: 0.5rem;
+}
+
+.btn-transcript {
+  padding: 0.3rem 0.75rem;
+  font-size: 0.8rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.btn-transcript:hover {
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+}
+
+.call-card-transcript {
+  margin: 0.5rem 0 0;
+  padding: 0.75rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* ---- Recommendations ---- */
+
+.analyzing-recommendations {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 2px solid var(--border);
+}
+
+.analyzing-recommendations h3 {
+  margin: 0;
+  font-size: 1.4rem;
+  text-align: center;
+}
+
+.rec-subtitle {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 0.25rem 0 1.5rem;
+}
+
+.rec-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.rec-card {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s;
+}
+
+.rec-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.rec-card-rank {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: var(--accent);
+  color: var(--bg-primary);
+  font-weight: 700;
+  font-size: 0.9rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.rec-card-img-wrap {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  background: var(--bg-tertiary);
+  overflow: hidden;
+}
+
+.rec-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.rec-card-body {
+  padding: 1rem;
+}
+
+.rec-card-title {
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.rec-card-price {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.rec-card-deal {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+}
+
+.rec-savings {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.rec-card-dealer {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.rec-card-features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-bottom: 0.75rem;
+}
+
+.rec-card-insight {
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.rec-insight-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.rec-verdict {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+
+.rec-verdict--worth-visiting {
+  color: var(--success);
+}
+
+.rec-verdict--skip {
+  color: var(--error);
+}
+
+.rec-takeaway {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.rec-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}

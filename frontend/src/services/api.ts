@@ -84,7 +84,10 @@ export const createShortlist = (
   api
     .post<{
       shortlisted: ShortlistEntry[];
-    }>(`/api/sessions/${sessionId}/shortlist`, { vehicle_ids: vehicleIds, auto_select: autoSelect })
+    }>(`/api/sessions/${sessionId}/shortlist`, {
+      vehicle_ids: vehicleIds,
+      auto_select: autoSelect,
+    })
     .then((r) => r.data);
 
 export const getDashboard = (sessionId: string) =>
@@ -140,5 +143,66 @@ export const getTestDriveStatus = (sessionId: string, bookingId: string) =>
   api
     .get<TestDriveStatus>(`/api/sessions/${sessionId}/test-drive/${bookingId}`)
     .then((r) => r.data);
+
+// ---------------------------------------------------------------------------
+// Analyze (dealer calls + ranking via SSE)
+// ---------------------------------------------------------------------------
+
+export const analyzeVehicles = (
+  sessionId: string,
+  onEvent: (eventType: string, data: Record<string, unknown>) => void,
+): { cancel: () => void } => {
+  const controller = new AbortController();
+  const baseURL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+  const run = async () => {
+    const resp = await fetch(`${baseURL}/api/sessions/${sessionId}/analyze`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
+    });
+
+    if (!resp.ok || !resp.body) {
+      onEvent("error", { message: `HTTP ${resp.status}` });
+      return;
+    }
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+
+      let currentEvent = "";
+      for (const line of lines) {
+        if (line.startsWith("event: ")) {
+          currentEvent = line.slice(7).trim();
+        } else if (line.startsWith("data: ") && currentEvent) {
+          try {
+            const data = JSON.parse(line.slice(6));
+            onEvent(currentEvent, data);
+          } catch {
+            // skip malformed
+          }
+          currentEvent = "";
+        }
+      }
+    }
+  };
+
+  run().catch((err) => {
+    if (err.name !== "AbortError") {
+      onEvent("error", { message: String(err) });
+    }
+  });
+
+  return { cancel: () => controller.abort() };
+};
 
 export default api;

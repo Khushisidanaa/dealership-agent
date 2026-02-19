@@ -4,7 +4,7 @@
 PYTHON ?= python3
 VENV ?= .venv
 BACKEND = backend
-PORT ?= 5000
+PORT ?= 8000
 CERTS_DIR = .certs
 
 .PHONY: install run run-http run-https mongo mongo-local stop help

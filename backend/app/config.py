@@ -1,5 +1,4 @@
 import os
-from functools import lru_cache
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings
@@ -51,8 +50,10 @@ class Settings(BaseSettings):
         validation_alias="FOXIT_API_HOST",
     )
 
-    # Server
-    server_base_url: str = "http://127.0.0.1:5000"
+    # Server / ngrok
+    server_base_url: str = "http://127.0.0.1:8000"
+    to_number: str = ""
+    port: int = 8000
 
     model_config = {
         "env_file": ".env",
@@ -61,6 +62,11 @@ class Settings(BaseSettings):
     }
 
 
-@lru_cache
+_settings_instance: Settings = None  # type: ignore[assignment]
+
+
 def get_settings() -> Settings:
-    return Settings()
+    global _settings_instance
+    if _settings_instance is None:
+        _settings_instance = Settings()
+    return _settings_instance

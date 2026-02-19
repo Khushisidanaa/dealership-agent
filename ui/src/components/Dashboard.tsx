@@ -14,9 +14,15 @@ interface DashboardProps {
   onBackToChat: () => void;
 }
 
+const PLACEHOLDER_IMG =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='200' fill='%231e2a3a'%3E%3Crect width='320' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%236b7a8f' font-size='14' font-family='system-ui'%3ENo Image%3C/text%3E%3C/svg%3E";
+
 function groupByDealer(data: DashboardResponse): DealershipGroup[] {
   const byDealer = new Map<string, VehicleResult[]>();
-  const commByVehicle = new Map<string, (typeof data.communication_status)[0]>();
+  const commByVehicle = new Map<
+    string,
+    (typeof data.communication_status)[0]
+  >();
   data.communication_status.forEach((c) => commByVehicle.set(c.vehicle_id, c));
 
   data.shortlist.forEach((v) => {
@@ -27,7 +33,10 @@ function groupByDealer(data: DashboardResponse): DealershipGroup[] {
 
   return Array.from(byDealer.entries()).map(([dealerName, vehicles]) => {
     const first = vehicles[0];
-    const communicationStatus: Record<string, (typeof data.communication_status)[0]> = {};
+    const communicationStatus: Record<
+      string,
+      (typeof data.communication_status)[0]
+    > = {};
     vehicles.forEach((ve) => {
       const c = commByVehicle.get(ve.vehicle_id);
       if (c) communicationStatus[ve.vehicle_id] = c;
@@ -46,10 +55,15 @@ export function Dashboard({ sessionId, onBackToChat }: DashboardProps) {
   const [groups, setGroups] = useState<DealershipGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [expandedDealer, setExpandedDealer] = useState<string | null>(null);
   const [selectedCar, setSelectedCar] = useState<VehicleResult | null>(null);
-  const [testDriveVehicle, setTestDriveVehicle] = useState<VehicleResult | null>(null);
+  const [testDriveVehicle, setTestDriveVehicle] =
+    useState<VehicleResult | null>(null);
   const [bookings, setBookings] = useState<TestDriveBooking[]>([]);
+  const [imgErrors, setImgErrors] = useState<Set<string>>(new Set());
+
+  const handleImgError = useCallback((id: string) => {
+    setImgErrors((prev) => new Set(prev).add(id));
+  }, []);
 
   const loadDashboard = useCallback(async () => {
     setError(null);
@@ -86,10 +100,6 @@ export function Dashboard({ sessionId, onBackToChat }: DashboardProps) {
     loadDashboard();
   }, [loadDashboard]);
 
-  const toggleDealer = (name: string) => {
-    setExpandedDealer((prev) => (prev === name ? null : name));
-  };
-
   const addBooking = useCallback(
     (res: {
       booking_id: string;
@@ -102,103 +112,251 @@ export function Dashboard({ sessionId, onBackToChat }: DashboardProps) {
     }) => {
       setBookings((prev) => [...prev, res]);
     },
-    []
+    [],
   );
 
   if (loading) {
     return (
       <div className="dashboard dashboard--loading">
         <div className="dashboard-loading-spinner" />
-        <p>Loading dashboard…</p>
+        <p>Loading dashboard...</p>
       </div>
     );
   }
+
+  const totalVehicles = groups.reduce((n, g) => n + g.vehicles.length, 0);
 
   return (
     <div className="dashboard">
       <div className="dashboard-toolbar">
         <button type="button" className="dashboard-back" onClick={onBackToChat}>
-          ← Back to Chat
+          Back to Chat
         </button>
-        <button type="button" className="dashboard-refresh" onClick={() => { setLoading(true); loadDashboard(); }}>
+        <div className="dashboard-stats">
+          <span className="dashboard-stat">
+            {groups.length} dealer{groups.length !== 1 ? "s" : ""}
+          </span>
+          <span className="dashboard-stat-sep" />
+          <span className="dashboard-stat">
+            {totalVehicles} vehicle{totalVehicles !== 1 ? "s" : ""}
+          </span>
+        </div>
+        <button
+          type="button"
+          className="dashboard-refresh"
+          onClick={() => {
+            setLoading(true);
+            loadDashboard();
+          }}
+        >
           Refresh
         </button>
       </div>
 
-      {error && (
-        <div className="dashboard-error">
-          {error}
-        </div>
-      )}
+      {error && <div className="dashboard-error">{error}</div>}
 
       {groups.length === 0 && !error && (
         <div className="dashboard-empty">
-          <p>No dealerships or cars yet.</p>
-          <p>Complete your requirements in the chat and use “View Dashboard” after the AI is ready to search.</p>
-          <button type="button" onClick={onBackToChat}>Back to Chat</button>
+          <p>No vehicles found yet.</p>
+          <p>Complete your requirements in the chat first.</p>
+          <button type="button" onClick={onBackToChat}>
+            Back to Chat
+          </button>
         </div>
       )}
 
-      {groups.length > 0 && (
-        <div className="dashboard-table-wrap">
-          <table className="dashboard-table">
-            <thead>
-              <tr>
-                <th style={{ width: 32 }} />
-                <th>Dealership</th>
-                <th>Address</th>
-                <th className="dashboard-cell-distance">Distance</th>
-              </tr>
-            </thead>
-            <tbody>
-              {groups.map((g) => (
-                <DealerRow
-                  key={g.dealerName}
-                  group={g}
-                  expanded={expandedDealer === g.dealerName}
-                  onToggle={() => toggleDealer(g.dealerName)}
-                  onSelectCar={setSelectedCar}
-                  onScheduleTestDrive={setTestDriveVehicle}
-                  bookings={bookings}
-                />
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <div className="dashboard-sections">
+        {groups.map((g) => (
+          <section key={g.dealerName} className="dashboard-section">
+            <div className="dashboard-section-header">
+              <div className="dashboard-section-title">
+                <h3>{g.dealerName}</h3>
+                {g.address && (
+                  <span className="dashboard-section-addr">{g.address}</span>
+                )}
+              </div>
+              <div className="dashboard-section-meta">
+                {g.distanceMiles != null && (
+                  <span className="dashboard-section-dist">
+                    {g.distanceMiles.toFixed(1)} mi
+                  </span>
+                )}
+                <span className="dashboard-section-count">
+                  {g.vehicles.length} car{g.vehicles.length !== 1 ? "s" : ""}
+                </span>
+              </div>
+            </div>
+            <div className="dashboard-card-grid">
+              {g.vehicles.map((v) => {
+                const imgSrc = imgErrors.has(v.vehicle_id)
+                  ? PLACEHOLDER_IMG
+                  : v.image_urls?.[0] || PLACEHOLDER_IMG;
+                const booking = bookings.find(
+                  (b) => b.vehicle_id === v.vehicle_id,
+                );
+                const comm = g.communicationStatus[v.vehicle_id];
+                const hasContact = comm?.text_sent || comm?.call_made;
+
+                return (
+                  <div
+                    key={v.vehicle_id}
+                    className="dashboard-card"
+                    onClick={() => setSelectedCar(v)}
+                  >
+                    <div className="dashboard-card-img-wrap">
+                      <img
+                        src={imgSrc}
+                        alt={v.title}
+                        className="dashboard-card-img"
+                        onError={() => handleImgError(v.vehicle_id)}
+                      />
+                      {booking && (
+                        <span className="dashboard-card-badge dashboard-card-badge--booked">
+                          Test Drive Booked
+                        </span>
+                      )}
+                      {hasContact && !booking && (
+                        <span className="dashboard-card-badge dashboard-card-badge--contacted">
+                          Contacted
+                        </span>
+                      )}
+                    </div>
+                    <div className="dashboard-card-body">
+                      <h4 className="dashboard-card-title">{v.title}</h4>
+                      <div className="dashboard-card-price">
+                        ${v.price.toLocaleString()}
+                      </div>
+                      <div className="dashboard-card-details">
+                        {v.mileage != null && (
+                          <span>{v.mileage.toLocaleString()} mi</span>
+                        )}
+                        {v.condition && <span>{v.condition}</span>}
+                      </div>
+                      {v.features && v.features.length > 0 && (
+                        <div className="dashboard-card-features">
+                          {v.features.slice(0, 4).map((f) => (
+                            <span key={f} className="dashboard-card-tag">
+                              {f}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <div className="dashboard-card-actions">
+                        {booking ? (
+                          <span className="dashboard-card-booked-info">
+                            {booking.scheduled_date} at {booking.scheduled_time}
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            className="dashboard-card-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setTestDriveVehicle(v);
+                            }}
+                          >
+                            Schedule Test Drive
+                          </button>
+                        )}
+                        {v.listing_url && (
+                          <a
+                            href={v.listing_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="dashboard-card-link"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            View Listing
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        ))}
+      </div>
 
       {selectedCar && (
         <div className="dashboard-overlay" onClick={() => setSelectedCar(null)}>
-          <div className="dashboard-detail-panel" onClick={(e) => e.stopPropagation()}>
-            <div className="dashboard-detail-header">
-              <h2>{selectedCar.title}</h2>
-              <button type="button" className="dashboard-detail-close" onClick={() => setSelectedCar(null)}>×</button>
+          <div
+            className="dashboard-detail-panel"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="dashboard-detail-close"
+              onClick={() => setSelectedCar(null)}
+            >
+              x
+            </button>
+            <div className="dashboard-detail-img-wrap">
+              <img
+                src={
+                  imgErrors.has(selectedCar.vehicle_id)
+                    ? PLACEHOLDER_IMG
+                    : selectedCar.image_urls?.[0] || PLACEHOLDER_IMG
+                }
+                alt={selectedCar.title}
+                className="dashboard-detail-img"
+                onError={() => handleImgError(selectedCar.vehicle_id)}
+              />
             </div>
             <div className="dashboard-detail-body">
-              <p><strong>Dealer:</strong> {selectedCar.dealer_name}</p>
-              <p><strong>Address:</strong> {selectedCar.dealer_address || "—"}</p>
-              <p><strong>Price:</strong> ${selectedCar.price.toLocaleString()}</p>
-              {selectedCar.mileage != null && <p><strong>Mileage:</strong> {selectedCar.mileage.toLocaleString()} mi</p>}
-              <p><strong>Condition:</strong> {selectedCar.condition}</p>
-              {selectedCar.features?.length > 0 && (
-                <p><strong>Features:</strong> {selectedCar.features.join(", ")}</p>
+              <h2>{selectedCar.title}</h2>
+              <div className="dashboard-detail-price">
+                ${selectedCar.price.toLocaleString()}
+              </div>
+              <div className="dashboard-detail-meta">
+                <span>Dealer: {selectedCar.dealer_name}</span>
+                {selectedCar.dealer_address && (
+                  <span>{selectedCar.dealer_address}</span>
+                )}
+                {selectedCar.mileage != null && (
+                  <span>{selectedCar.mileage.toLocaleString()} miles</span>
+                )}
+                <span>Condition: {selectedCar.condition}</span>
+              </div>
+              {selectedCar.features && selectedCar.features.length > 0 && (
+                <div className="dashboard-detail-features">
+                  {selectedCar.features.map((f) => (
+                    <span key={f} className="dashboard-card-tag">
+                      {f}
+                    </span>
+                  ))}
+                </div>
               )}
-              {selectedCar.known_issues?.length > 0 && (
-                <p><strong>Known issues:</strong> {selectedCar.known_issues.join(", ")}</p>
-              )}
-              {selectedCar.listing_url && (
-                <p><a href={selectedCar.listing_url} target="_blank" rel="noopener noreferrer">View listing</a></p>
-              )}
-              <button
-                type="button"
-                className="dashboard-btn-test-drive"
-                onClick={() => {
-                  setSelectedCar(null);
-                  setTestDriveVehicle(selectedCar);
-                }}
-              >
-                Schedule test drive
-              </button>
+              {selectedCar.known_issues &&
+                selectedCar.known_issues.length > 0 && (
+                  <div className="dashboard-detail-issues">
+                    <strong>Known issues:</strong>{" "}
+                    {selectedCar.known_issues.join(", ")}
+                  </div>
+                )}
+              <div className="dashboard-detail-actions">
+                <button
+                  type="button"
+                  className="dashboard-card-btn"
+                  onClick={() => {
+                    setSelectedCar(null);
+                    setTestDriveVehicle(selectedCar);
+                  }}
+                >
+                  Schedule Test Drive
+                </button>
+                {selectedCar.listing_url && (
+                  <a
+                    href={selectedCar.listing_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="dashboard-card-link"
+                  >
+                    View Listing
+                  </a>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -213,110 +371,5 @@ export function Dashboard({ sessionId, onBackToChat }: DashboardProps) {
         />
       )}
     </div>
-  );
-}
-
-function DealerRow({
-  group,
-  expanded,
-  onToggle,
-  onSelectCar,
-  onScheduleTestDrive,
-  bookings,
-}: {
-  group: DealershipGroup;
-  expanded: boolean;
-  onToggle: () => void;
-  onSelectCar: (v: VehicleResult) => void;
-  onScheduleTestDrive: (v: VehicleResult) => void;
-  bookings: TestDriveBooking[];
-}) {
-  const hasAppointment = group.vehicles.some((v) =>
-    bookings.some((b) => b.vehicle_id === v.vehicle_id)
-  );
-  const commStatus = group.vehicles.some(
-    (v) => group.communicationStatus[v.vehicle_id]?.text_sent || group.communicationStatus[v.vehicle_id]?.call_made
-  );
-
-  return (
-    <>
-      <tr
-        className="dashboard-dealer-row"
-        onClick={onToggle}
-      >
-        <td className="dashboard-cell-expand">
-          <span className={`dashboard-expand-icon ${expanded ? "expanded" : ""}`}>▸</span>
-        </td>
-        <td>
-          <span className="dashboard-dealer-name">{group.dealerName}</span>
-          {hasAppointment && <span className="dashboard-badge dashboard-badge--appointment">Appointment</span>}
-          {commStatus && <span className="dashboard-badge dashboard-badge--contact">Contacted</span>}
-        </td>
-        <td className="dashboard-cell-address">{group.address || "—"}</td>
-        <td className="dashboard-cell-distance">
-          {group.distanceMiles != null ? `${group.distanceMiles.toFixed(1)} mi` : "—"}
-        </td>
-      </tr>
-      {expanded && (
-        <tr className="dashboard-cars-row">
-          <td colSpan={4}>
-            <div className="dashboard-cars-inner">
-              <table className="dashboard-cars-table">
-                <thead>
-                  <tr>
-                    <th>Car</th>
-                    <th>Price</th>
-                    <th>Mileage</th>
-                    <th>Condition</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {group.vehicles.map((v) => {
-                    const booking = bookings.find((b) => b.vehicle_id === v.vehicle_id);
-                    const comm = group.communicationStatus[v.vehicle_id];
-                    return (
-                      <tr
-                        key={v.vehicle_id}
-                        className="dashboard-car-row"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onSelectCar(v);
-                        }}
-                      >
-                        <td>{v.title}</td>
-                        <td>${v.price.toLocaleString()}</td>
-                        <td>{v.mileage != null ? v.mileage.toLocaleString() : "—"}</td>
-                        <td>{v.condition}</td>
-                        <td className="dashboard-car-actions">
-                          {comm?.text_sent && <span className="dashboard-badge small">Text sent</span>}
-                          {comm?.call_made && <span className="dashboard-badge small">Called</span>}
-                          {booking ? (
-                            <span className="dashboard-badge dashboard-badge--appointment small">
-                              Test drive: {booking.scheduled_date} {booking.scheduled_time}
-                            </span>
-                          ) : (
-                            <button
-                              type="button"
-                              className="dashboard-car-btn-test"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onScheduleTestDrive(v);
-                              }}
-                            >
-                              Schedule test drive
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </td>
-        </tr>
-      )}
-    </>
   );
 }

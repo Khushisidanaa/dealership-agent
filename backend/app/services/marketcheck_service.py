@@ -167,8 +167,8 @@ def _compute_price_stats(
 
 
 async def search_listings(
-    make: str,
-    model: str,
+    make: str = "",
+    model: str = "",
     *,
     year: Optional[int] = None,
     year_min: Optional[int] = None,
@@ -193,15 +193,22 @@ async def search_listings(
         logger.error("MARKETCHECK_API_KEY not configured")
         return [], 0, None
 
+    safe_car_type = car_type if car_type in ("used", "new", "certified") else "used"
+
     params: Dict[str, Union[str, int]] = {
         "api_key": api_key,
-        "make": make,
-        "model": model,
-        "zip": zip_code,
-        "radius": radius_miles,
-        "car_type": car_type,
+        "car_type": safe_car_type,
         "rows": rows,
     }
+
+    if zip_code:
+        params["zip"] = zip_code
+        params["radius"] = min(radius_miles, 100)
+
+    if make:
+        params["make"] = make
+    if model:
+        params["model"] = model
 
     if year is not None:
         params["year"] = year
@@ -214,12 +221,14 @@ async def search_listings(
             params["year_range"] = f"-{year_max}"
 
     if price_min is not None or price_max is not None:
-        if price_min is not None and price_max is not None:
-            params["price_range"] = f"{price_min}-{price_max}"
-        elif price_min is not None:
-            params["price_range"] = f"{price_min}-"
-        else:
-            params["price_range"] = f"-{price_max}"
+        lo = price_min if price_min and price_min > 0 else 0
+        hi = price_max if price_max and price_max > 0 else ""
+        if lo and hi:
+            params["price_range"] = f"{lo}-{hi}"
+        elif lo:
+            params["price_range"] = f"{lo}-"
+        elif hi:
+            params["price_range"] = f"0-{hi}"
 
     if max_mileage is not None:
         params["miles_range"] = f"0-{max_mileage}"
@@ -227,7 +236,9 @@ async def search_listings(
     async with httpx.AsyncClient(timeout=30.0) as client:
         resp = await client.get(MARKETCHECK_BASE, params=params)
 
-    resp.raise_for_status()
+    if resp.status_code != 200:
+        logger.error("MarketCheck %s: %s", resp.status_code, resp.text[:500])
+        resp.raise_for_status()
     data = resp.json()
 
     total_found = data.get("num_found", 0)
