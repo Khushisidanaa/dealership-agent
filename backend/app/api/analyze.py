@@ -26,7 +26,7 @@ from app.agent.prompts.dealer_call import (
 )
 from app.agent.prompts.call_summary import build_summary_prompt
 from app.config import get_settings
-from app.models.documents import SearchResultDocument, CommunicationDocument, SessionDocument
+from app.models.documents import SearchResultDocument, CommunicationDocument, SessionDocument, UserDocument
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/sessions/{session_id}", tags=["analyze"])
@@ -197,6 +197,14 @@ async def analyze_vehicles(session_id: str, request: Request):
 
     preferences = session.preferences or {}
 
+    user_name = preferences.get("user_name", "")
+    if not user_name and session.user_id:
+        user_doc = await UserDocument.find_one(UserDocument.user_id == session.user_id)
+        if user_doc and user_doc.name:
+            user_name = user_doc.name.split()[0]
+    if not user_name:
+        user_name = "the buyer"
+
     public_url = settings.server_base_url.rstrip("/")
     if not public_url.startswith("http") or "your-subdomain" in public_url:
         raise HTTPException(
@@ -262,7 +270,7 @@ async def analyze_vehicles(session_id: str, request: Request):
                 vehicle_features=vehicle.get("features", []),
                 user_budget_max=preferences.get("price_max", 100_000),
                 user_zip=preferences.get("zip_code", ""),
-                user_name=preferences.get("user_name", "Alex"),
+                user_name=user_name,
                 financing_interest=preferences.get("finance", "undecided") != "cash",
                 trade_in_description=preferences.get("trade_in", ""),
             )
