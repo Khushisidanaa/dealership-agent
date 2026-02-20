@@ -29,6 +29,7 @@ export function Dashboard({
     new Map(),
   );
   const [loading, setLoading] = useState(true);
+  const [exportingPdf, setExportingPdf] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedCar, setSelectedCar] = useState<VehicleResult | null>(null);
   const [testDriveVehicle, setTestDriveVehicle] =
@@ -146,6 +147,32 @@ export function Dashboard({
             </>
           )}
         </div>
+        <button
+          type="button"
+          className="dashboard-refresh"
+          onClick={async () => {
+            setExportingPdf(true);
+            try {
+              const blob = await api.dashboard.exportPdf(sessionId);
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `dashboard_report_${sessionId.slice(0, 8)}.pdf`;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+            } catch (e) {
+              setError(e instanceof Error ? e.message : String(e));
+            } finally {
+              setExportingPdf(false);
+            }
+          }}
+          disabled={exportingPdf || vehicles.length === 0}
+          title="Export dashboard as PDF"
+        >
+          {exportingPdf ? "Exporting…" : "Export PDF"}
+        </button>
         <button
           type="button"
           className="dashboard-refresh"

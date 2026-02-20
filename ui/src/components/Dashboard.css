@@ -72,10 +72,16 @@
   transition: all 0.15s;
 }
 
-.dashboard-back:hover,
-.dashboard-refresh:hover {
+.dashboard-back:hover:not(:disabled),
+.dashboard-refresh:hover:not(:disabled) {
   background: var(--bg-tertiary);
   border-color: var(--accent);
+}
+
+.dashboard-back:disabled,
+.dashboard-refresh:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .dashboard-error {
