@@ -129,6 +129,8 @@ class TestDriveBookingDocument(Document):
     scheduled_date: str = ""
     scheduled_time: str = ""
     dealer_response: Optional[str] = None
+    call_transcript: Optional[str] = None
+    call_result: Optional[dict] = None
     created_at: datetime = Field(default_factory=utc_now)
 
     class Settings:

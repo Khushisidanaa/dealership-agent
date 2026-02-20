@@ -469,6 +469,24 @@ class TestDriveStatusResponse(BaseModel):
     dealer_response: Optional[str] = None
 
 
+class TestDriveCallRequest(BaseModel):
+    vehicle_id: str
+    preferred_date: str
+    preferred_time: str
+    user_name: str
+
+
+class TestDriveCallResponse(BaseModel):
+    booking_id: str
+    status: str
+    confirmed: bool = False
+    scheduled_date: Optional[str] = None
+    scheduled_time: Optional[str] = None
+    dealer_notes: Optional[str] = None
+    vehicle_title: str = ""
+    dealer_name: str = ""
+
+
 # ---------------------------------------------------------------------------
 # Document analysis (Foxit: Carfax, inspection reports, etc.)
 # ---------------------------------------------------------------------------

@@ -1,0 +1,14 @@
+Agent: Hi! I'm calling on behalf of Khushi about the 2019 TOYOTA TACOMA CRW CAB/SR/SR5/TRD CREW CAB you have listed at State Street Truck Stop. They'd love to come in for a test drive on 2026-02-24 around 12:00. Would that work?
+
+User: Yes.
+
+Agent: Great!
+
+Agent: So we have Khushi scheduled for a test drive on 2026-02-24 at 12:00.
+
+Agent: Thank you so much!
+
+Agent: Great, Khushi will be there.
+
+Agent: Thanks so much!
+

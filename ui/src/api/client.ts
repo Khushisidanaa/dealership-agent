@@ -224,5 +224,27 @@ export const api = {
         `/api/sessions/${sessionId}/test-drive`,
         { method: "POST", body: JSON.stringify(body) },
       ),
+    call: (
+      sessionId: string,
+      body: {
+        vehicle_id: string;
+        preferred_date: string;
+        preferred_time: string;
+        user_name: string;
+      },
+    ) =>
+      request<{
+        booking_id: string;
+        status: string;
+        confirmed: boolean;
+        scheduled_date: string | null;
+        scheduled_time: string | null;
+        dealer_notes: string | null;
+        vehicle_title: string;
+        dealer_name: string;
+      }>(`/api/sessions/${sessionId}/test-drive/call`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
   },
 };
