@@ -1,7 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import http from "node:http";
-// Force IPv4 for proxy so we don't hit ECONNREFUSED on ::1 when backend listens on 127.0.0.1
 var ipv4Agent = new http.Agent({ family: 4 });
 export default defineConfig({
     plugins: [react()],
@@ -12,6 +11,20 @@ export default defineConfig({
                 target: "http://127.0.0.1:8000",
                 changeOrigin: true,
                 agent: ipv4Agent,
+                configure: function (proxy) {
+                    proxy.on("proxyRes", function (proxyRes, _req, res) {
+                        var ct = proxyRes.headers["content-type"] || "";
+                        if (ct.includes("text/event-stream")) {
+                            delete proxyRes.headers["content-encoding"];
+                            proxyRes.headers["Cache-Control"] = "no-cache";
+                            proxyRes.headers["X-Accel-Buffering"] = "no";
+                            if ("flushHeaders" in res &&
+                                typeof res.flushHeaders === "function") {
+                                res.flushHeaders();
+                            }
+                        }
+                    });
+                },
             },
         },
     },
