@@ -98,6 +98,11 @@ function App() {
     setPhase("results");
   }, []);
 
+  const handleBackToRequirements = useCallback(() => {
+    setIsRequirementsComplete(false);
+    setPhase("chat");
+  }, []);
+
   const handleFormSearchDone = useCallback(() => {
     setIsRequirementsComplete(true);
     setPhase("results");
@@ -331,6 +336,7 @@ function App() {
               sessionId={sessionId}
               onStartCalling={handleStartCalling}
               onBack={() => setPhase("chat")}
+              onChangeRequirements={handleBackToRequirements}
             />
           )}
 
@@ -340,13 +346,14 @@ function App() {
               vehicles={searchVehicles}
               onComplete={handleAnalysisComplete}
               onBack={() => setPhase("results")}
+              onChangeRequirements={handleBackToRequirements}
             />
           )}
 
           {phase === "dashboard" && (
             <Dashboard
               sessionId={sessionId}
-              onBackToChat={() => setPhase("chat")}
+              onBackToChat={handleBackToRequirements}
               top3={top3}
             />
           )}

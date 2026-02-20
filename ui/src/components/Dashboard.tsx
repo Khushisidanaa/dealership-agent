@@ -135,8 +135,8 @@ export function Dashboard({
   return (
     <div className="dashboard">
       <div className="dashboard-toolbar">
-        <button type="button" className="dashboard-back" onClick={onBackToChat}>
-          Back to Chat
+        <button type="button" className="dashboard-back" onClick={onBackToChat} title="Edit requirements in the form or chat with AI">
+          Change requirements
         </button>
         <div className="dashboard-stats">
           <span className="dashboard-stat">
@@ -164,9 +164,9 @@ export function Dashboard({
       {groups.length === 0 && !error && (
         <div className="dashboard-empty">
           <p>No vehicles found yet.</p>
-          <p>Complete your requirements in the chat first.</p>
+          <p>Complete your requirements in the chat or form first.</p>
           <button type="button" onClick={onBackToChat}>
-            Back to Chat
+            Change requirements
           </button>
         </div>
       )}

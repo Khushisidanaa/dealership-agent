@@ -7,6 +7,7 @@ interface RecommendationsViewProps {
   sessionId: string;
   onStartCalling: (vehicles: VehicleResult[]) => void;
   onBack: () => void;
+  onChangeRequirements?: () => void;
 }
 
 const PLACEHOLDER_IMG =
@@ -18,6 +19,7 @@ export function RecommendationsView({
   sessionId,
   onStartCalling,
   onBack,
+  onChangeRequirements,
 }: RecommendationsViewProps) {
   const [vehicles, setVehicles] = useState<VehicleResult[]>([]);
   const [loading, setLoading] = useState(true);
@@ -100,13 +102,13 @@ export function RecommendationsView({
     return (
       <div className="rec-view-loading">
         <h2>No vehicles found</h2>
-        <p>Try adjusting your preferences in the chat</p>
+        <p>Try adjusting your preferences in the chat or form</p>
         <button
           type="button"
           className="rv-btn rv-btn--secondary"
-          onClick={onBack}
+          onClick={onChangeRequirements ?? onBack}
         >
-          Back to Chat
+          Change requirements
         </button>
       </div>
     );
@@ -126,6 +128,16 @@ export function RecommendationsView({
           </p>
         </div>
         <div className="rec-view-header-actions">
+          {onChangeRequirements && (
+            <button
+              type="button"
+              className="rv-btn rv-btn--ghost"
+              onClick={onChangeRequirements}
+              title="Edit requirements in the form or chat with AI"
+            >
+              Change requirements
+            </button>
+          )}
           <button
             type="button"
             className="rv-btn rv-btn--ghost"

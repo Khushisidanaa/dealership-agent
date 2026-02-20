@@ -14,6 +14,7 @@ interface AnalyzingViewProps {
   vehicles: VehicleResult[];
   onComplete: (top3: TopVehicle[], allVehicles: VehicleResult[]) => void;
   onBack: () => void;
+  onChangeRequirements?: () => void;
 }
 
 const STATUS_LABELS: Record<DealerCallStatus, string> = {
@@ -40,6 +41,7 @@ export function AnalyzingView({
   vehicles,
   onComplete,
   onBack,
+  onChangeRequirements,
 }: AnalyzingViewProps) {
   const [dealers, setDealers] = useState<DealerCallState[]>([]);
   const [overallMessage, setOverallMessage] = useState(
@@ -184,7 +186,19 @@ export function AnalyzingView({
     <div className="analyzing">
       {/* Progress Header */}
       <div className="analyzing-header">
-        <h2>{overallMessage}</h2>
+        <div className="analyzing-header-row">
+          <h2>{overallMessage}</h2>
+          {onChangeRequirements && (
+            <button
+              type="button"
+              className="analyzing-change-req"
+              onClick={onChangeRequirements}
+              title="Edit requirements in the form or chat with AI"
+            >
+              Change requirements
+            </button>
+          )}
+        </div>
         <div className="analyzing-progress-bar">
           <div
             className="analyzing-progress-fill"
@@ -396,6 +410,15 @@ export function AnalyzingView({
             <button type="button" className="btn-secondary" onClick={onBack}>
               Search Again
             </button>
+            {onChangeRequirements && (
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={onChangeRequirements}
+              >
+                Change requirements
+              </button>
+            )}
           </div>
         </div>
       )}

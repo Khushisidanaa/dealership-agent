@@ -12,8 +12,37 @@
   margin-bottom: 2rem;
 }
 
-.analyzing-header h2 {
-  margin: 0 0 1rem;
+.analyzing-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.analyzing-header-row h2 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.analyzing-change-req {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.analyzing-change-req:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.analyzing-header-row h2 {
   font-size: 1.4rem;
 }
 
