@@ -1,23 +1,23 @@
 import "./StepIndicator.css";
 
-interface Step {
-  key: string;
+interface Step<T extends string = string> {
+  key: T;
   label: string;
 }
 
-interface StepIndicatorProps {
-  steps: Step[];
+interface StepIndicatorProps<T extends string = string> {
+  steps: Step<T>[];
   current: string;
-  completedPhases?: Set<string>;
-  onStepClick?: (key: string) => void;
+  completedPhases?: Set<T>;
+  onStepClick?: (key: T) => void;
 }
 
-export function StepIndicator({
+export function StepIndicator<T extends string = string>({
   steps,
   current,
   completedPhases,
   onStepClick,
-}: StepIndicatorProps) {
+}: StepIndicatorProps<T>) {
   const currentIdx = steps.findIndex((s) => s.key === current);
 
   return (
