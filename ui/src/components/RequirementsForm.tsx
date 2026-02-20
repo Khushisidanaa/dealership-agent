@@ -62,7 +62,7 @@ export function RequirementsForm({
   const [priceMin, setPriceMin] = useState("");
   const [priceMax, setPriceMax] = useState("");
   const [condition, setCondition] = useState("");
-  const [zipCode, setZipCode] = useState("");
+  const [zipCode, setZipCode] = useState("84070");
   const [radius, setRadius] = useState("50");
   const [maxMileage, setMaxMileage] = useState("");
   const [bodyType, setBodyType] = useState("");
