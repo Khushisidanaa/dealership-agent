@@ -43,7 +43,6 @@ function formChangeToRequirements(
 ): Record<string, unknown> {
   const next = { ...mergeWithDefaults(req) };
   const str = value === "" ? "" : String(value).trim();
-  const num = (v: string) => (v === "" ? undefined : parseInt(v, 10));
   switch (field) {
     case "make":
       next.brand_preference = str ? [str] : [];
