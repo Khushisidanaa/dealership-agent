@@ -1,148 +1,145 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { api } from "./api/client";
-import { mergeWithDefaults } from "./components/requirementsFields";
-import { ChatWindow } from "./components/ChatWindow";
-import { RequirementsModal } from "./components/RequirementsModal";
-import { SearchResults } from "./components/SearchResults";
+import type { AuthUser } from "./api/client";
+import { WelcomePage } from "./components/WelcomePage";
+import { ChatSidebar } from "./components/ChatSidebar";
+import { StepIndicator } from "./components/StepIndicator";
+import { RecommendationsView } from "./components/RecommendationsView";
 import { AnalyzingView } from "./components/AnalyzingView";
 import { Dashboard } from "./components/Dashboard";
+import { RequirementsForm } from "./components/RequirementsForm";
 import type { VehicleResult, TopVehicle } from "./types";
 import "./App.css";
 
-type View = "chat" | "results" | "analyzing" | "dashboard";
+export type Phase = "chat" | "results" | "calling" | "dashboard";
+
+const STEPS: { key: Phase; label: string }[] = [
+  { key: "chat", label: "Requirements" },
+  { key: "results", label: "Recommendations" },
+  { key: "calling", label: "Dealer Calls" },
+  { key: "dashboard", label: "Dashboard" },
+];
+
+type StartTab = "chat" | "form";
 
 function App() {
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [view, setView] = useState<View>("chat");
-  const [requirements, setRequirements] = useState<Record<string, unknown>>({});
-  const [isRequirementsComplete, setIsRequirementsComplete] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [sessionError, setSessionError] = useState<string | null>(null);
-  const [searchVehicles, setSearchVehicles] = useState<VehicleResult[]>([]);
-  const [, setTop3Vehicles] = useState<TopVehicle[]>([]);
+  const hasSavedAuth = !!sessionStorage.getItem("da_auth");
 
-  const ensureSession = useCallback(async () => {
-    if (sessionId) return sessionId;
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [phase, setPhase] = useState<Phase>("chat");
+  const [isRequirementsComplete, setIsRequirementsComplete] = useState(false);
+  const [searchVehicles, setSearchVehicles] = useState<VehicleResult[]>([]);
+  const [top3, setTop3] = useState<TopVehicle[]>([]);
+  const [sessionLoading, setSessionLoading] = useState(hasSavedAuth);
+  const [sessionError, setSessionError] = useState<string | null>(null);
+  const [startTab, setStartTab] = useState<StartTab>("chat");
+  const [isChatOpen, setIsChatOpen] = useState(true);
+
+  const sessionCreatedRef = useRef(false);
+
+  const createSession = useCallback(async () => {
+    if (sessionCreatedRef.current) return;
+    sessionCreatedRef.current = true;
+    setSessionLoading(true);
     setSessionError(null);
     try {
       const s = await api.sessions.create();
       setSessionId(s.session_id);
-      setUserId(s.user_id);
-      return s.session_id;
-    } catch (e) {
-      setSessionError(
-        e instanceof Error ? e.message : "Could not connect to backend",
-      );
-      return null;
+    } catch {
+      sessionCreatedRef.current = false;
+      setSessionError("Could not connect to the backend.");
     } finally {
-      setLoading(false);
+      setSessionLoading(false);
     }
-  }, [sessionId]);
-
-  useEffect(() => {
-    ensureSession();
-  }, [ensureSession]);
-
-  const handleChatReply = useCallback(
-    (updatedFilters?: Record<string, unknown>, readyToSearch?: boolean) => {
-      if (updatedFilters) {
-        setRequirements((prev) => ({ ...prev, ...updatedFilters }));
-      }
-      if (readyToSearch) {
-        setIsRequirementsComplete(true);
-      }
-    },
-    [],
-  );
-
-  const handleRequirementsChange = useCallback(
-    (next: Record<string, unknown>) => {
-      setRequirements(next);
-    },
-    [],
-  );
-
-  const handleMarkComplete = useCallback(async () => {
-    const fullReq = mergeWithDefaults(requirements);
-    if (sessionId) {
-      const prefsBody: Record<string, unknown> = {
-        make: Array.isArray(fullReq.brand_preference)
-          ? (fullReq.brand_preference as string[])[0]
-          : "",
-        model: Array.isArray(fullReq.model_preference)
-          ? (fullReq.model_preference as string[])[0]
-          : "",
-        year_min: fullReq.year_min ?? 2015,
-        year_max: fullReq.year_max ?? 2026,
-        price_min: fullReq.price_min ?? 0,
-        price_max: fullReq.price_max ?? 100_000,
-        condition: fullReq.condition ?? "any",
-        zip_code: fullReq.zip_code ?? "",
-        radius_miles: fullReq.radius_miles ?? fullReq.max_distance_miles ?? 50,
-        max_mileage: fullReq.max_mileage ?? undefined,
-      };
-      try {
-        await api.preferences.submit(sessionId, prefsBody);
-      } catch {
-        // non-blocking
-      }
-    }
-    if (userId) {
-      try {
-        await api.users.updateRequirements(userId, fullReq);
-      } catch {
-        // non-blocking
-      }
-    }
-    setIsRequirementsComplete(true);
-  }, [sessionId, userId, requirements]);
-
-  const handleGoToResults = useCallback(() => {
-    setView("results");
   }, []);
 
-  const handleBackToChat = useCallback(() => {
-    setView("chat");
+  const handleAuth = useCallback(
+    (user: AuthUser) => {
+      setAuthUser(user);
+      sessionStorage.setItem("da_auth", JSON.stringify(user));
+      createSession();
+    },
+    [createSession],
+  );
+
+  useEffect(() => {
+    const saved = sessionStorage.getItem("da_auth");
+    if (!saved) return;
+    try {
+      const user = JSON.parse(saved) as AuthUser;
+      setAuthUser(user);
+      createSession();
+    } catch {
+      sessionStorage.removeItem("da_auth");
+      setSessionLoading(false);
+    }
+  }, [createSession]);
+
+  const handleLogout = useCallback(() => {
+    sessionStorage.removeItem("da_auth");
+    sessionCreatedRef.current = false;
+    setAuthUser(null);
+    setSessionId(null);
+    setPhase("chat");
+    setIsRequirementsComplete(false);
+    setSearchVehicles([]);
+    setTop3([]);
+  }, []);
+
+  const handleChatReply = useCallback(
+    (_filters?: Record<string, unknown>, readyToSearch?: boolean) => {
+      if (readyToSearch) setIsRequirementsComplete(true);
+    },
+    [],
+  );
+
+  const handleGoToResults = useCallback(() => {
+    setPhase("results");
+  }, []);
+
+  const handleFormSearchDone = useCallback(() => {
+    setIsRequirementsComplete(true);
+    setPhase("results");
   }, []);
 
   const handleStartCalling = useCallback((vehicles: VehicleResult[]) => {
     setSearchVehicles(vehicles);
-    setView("analyzing");
+    setPhase("calling");
   }, []);
 
   const handleAnalysisComplete = useCallback(
-    (top3: TopVehicle[], allVehicles: VehicleResult[]) => {
-      setTop3Vehicles(top3);
+    (topResults: TopVehicle[], allVehicles: VehicleResult[]) => {
+      setTop3(topResults);
       setSearchVehicles(allVehicles);
-      setView("dashboard");
+      setPhase("dashboard");
     },
     [],
   );
 
-  if (loading) {
+  const toggleChat = useCallback(() => setIsChatOpen((o) => !o), []);
+
+  if (!authUser) {
+    return <WelcomePage onAuth={handleAuth} />;
+  }
+
+  if (sessionLoading) {
     return (
-      <div className="app-loading">
-        <div className="app-loading-spinner" />
-        <p>Starting session...</p>
+      <div className="app-loader">
+        <div className="app-loader-spinner" />
+        <p>Setting up your session...</p>
       </div>
     );
   }
 
-  if (sessionError && !sessionId) {
+  if (sessionError || !sessionId) {
     return (
-      <div className="app-loading">
-        <p className="app-loading-error">Could not connect to the backend.</p>
-        <p className="app-loading-hint">
-          Make sure the API is running at <code>http://127.0.0.1:8000</code>
-        </p>
+      <div className="app-loader">
+        <p className="app-loader-error">{sessionError || "No session"}</p>
         <button
           type="button"
-          className="app-loading-retry"
-          onClick={() => {
-            setLoading(true);
-            ensureSession();
-          }}
+          className="app-loader-retry"
+          onClick={createSession}
         >
           Retry
         </button>
@@ -150,84 +147,211 @@ function App() {
     );
   }
 
+  const isDashboard = phase === "dashboard";
+  const showSidebar = !isDashboard;
+
   return (
-    <div className="app">
-      <header className="app-header">
-        <h1 className="app-logo">Dealership Agent</h1>
-        <nav className="app-nav">
+    <div className="app-shell">
+      <header className="app-topbar">
+        <div className="app-brand">
+          {showSidebar && (
+            <button
+              type="button"
+              className="app-chat-toggle"
+              onClick={toggleChat}
+              title={isChatOpen ? "Hide chat" : "Show chat"}
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                {isChatOpen ? (
+                  <>
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <path d="M9 3v18" />
+                  </>
+                ) : (
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                )}
+              </svg>
+            </button>
+          )}
+          <span className="app-brand-icon">
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect x="1" y="3" width="15" height="13" rx="2" ry="2" />
+              <polygon
+                points="16 8 20 12 20 18 16 18 16 8"
+                style={{ fill: "none" }}
+              />
+              <circle cx="5.5" cy="18.5" r="2.5" />
+              <circle cx="18.5" cy="18.5" r="2.5" />
+            </svg>
+          </span>
+          <span className="app-brand-text">Dealership Agent</span>
+        </div>
+        <StepIndicator steps={STEPS} current={phase} />
+        <div className="app-topbar-user">
+          <span className="app-user-avatar">
+            {authUser.name[0]?.toUpperCase() || "U"}
+          </span>
+          <span className="app-user-name">{authUser.name}</span>
           <button
             type="button"
-            className={view === "chat" ? "active" : ""}
-            onClick={() => setView("chat")}
+            className="app-logout-btn"
+            onClick={handleLogout}
+            title="Log out"
           >
-            Chat
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
           </button>
-          <button
-            type="button"
-            className={
-              view === "results" || view === "analyzing" ? "active" : ""
-            }
-            onClick={() => setView("results")}
-            disabled={!isRequirementsComplete}
-          >
-            Results
-          </button>
-          <button
-            type="button"
-            className={view === "dashboard" ? "active" : ""}
-            onClick={() => setView("dashboard")}
-            disabled={!sessionId}
-          >
-            Dashboard
-          </button>
-        </nav>
+        </div>
       </header>
 
-      <RequirementsModal
-        requirements={requirements}
-        onRequirementsChange={handleRequirementsChange}
-        sessionId={sessionId}
-        onMarkComplete={handleMarkComplete}
-      />
-
-      <main className="app-main">
-        {view === "chat" && sessionId && (
-          <ChatWindow
+      <div className={`app-body ${isDashboard ? "app-body--full" : ""}`}>
+        {showSidebar && (
+          <ChatSidebar
             sessionId={sessionId}
+            userName={authUser.name}
             onChatReply={handleChatReply}
             requirementsComplete={isRequirementsComplete}
-            onGoToDashboard={handleGoToResults}
+            onGoToResults={handleGoToResults}
+            currentPhase={phase}
+            isOpen={isChatOpen}
+            onToggle={toggleChat}
           />
         )}
 
-        {view === "results" && sessionId && (
-          <SearchResults
-            sessionId={sessionId}
-            onStartCalling={handleStartCalling}
-            onBack={handleBackToChat}
-          />
-        )}
+        <main
+          className={`app-content ${isDashboard ? "app-content--full" : ""}`}
+        >
+          {phase === "chat" && (
+            <div className="app-start-area">
+              <div className="app-start-tabs">
+                <button
+                  type="button"
+                  className={`app-start-tab ${startTab === "chat" ? "app-start-tab--active" : ""}`}
+                  onClick={() => setStartTab("chat")}
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  </svg>
+                  Chat with AI
+                </button>
+                <button
+                  type="button"
+                  className={`app-start-tab ${startTab === "form" ? "app-start-tab--active" : ""}`}
+                  onClick={() => setStartTab("form")}
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <path d="M9 3v18" />
+                    <path d="M13 8h4" />
+                    <path d="M13 12h4" />
+                    <path d="M13 16h4" />
+                  </svg>
+                  Quick Form
+                </button>
+              </div>
 
-        {view === "analyzing" && sessionId && (
-          <AnalyzingView
-            sessionId={sessionId}
-            vehicles={searchVehicles}
-            onComplete={handleAnalysisComplete}
-            onBack={() => setView("results")}
-          />
-        )}
+              {startTab === "chat" ? (
+                <div className="app-content-center">
+                  <div className="app-welcome-card">
+                    <h2>Welcome, {authUser.name}</h2>
+                    <p>
+                      Start by telling me what kind of car you are looking for
+                      in the chat. I will gather your preferences and find the
+                      best matches.
+                    </p>
+                    <div className="app-welcome-hints">
+                      <span className="hint-chip">Budget range</span>
+                      <span className="hint-chip">Preferred brand</span>
+                      <span className="hint-chip">Body type</span>
+                      <span className="hint-chip">Location / ZIP</span>
+                      <span className="hint-chip">Max mileage</span>
+                      <span className="hint-chip">Must-have features</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <RequirementsForm
+                  sessionId={sessionId}
+                  onSearchDone={handleFormSearchDone}
+                />
+              )}
+            </div>
+          )}
 
-        {view === "dashboard" && sessionId && (
-          <Dashboard sessionId={sessionId} onBackToChat={handleBackToChat} />
-        )}
+          {phase === "results" && (
+            <RecommendationsView
+              sessionId={sessionId}
+              onStartCalling={handleStartCalling}
+              onBack={() => setPhase("chat")}
+            />
+          )}
 
-        {view === "dashboard" && !sessionId && (
-          <div className="app-loading">
-            <div className="app-loading-spinner" />
-            <p>Preparing dashboard...</p>
-          </div>
-        )}
-      </main>
+          {phase === "calling" && (
+            <AnalyzingView
+              sessionId={sessionId}
+              vehicles={searchVehicles}
+              onComplete={handleAnalysisComplete}
+              onBack={() => setPhase("results")}
+            />
+          )}
+
+          {phase === "dashboard" && (
+            <Dashboard
+              sessionId={sessionId}
+              onBackToChat={() => setPhase("chat")}
+              top3={top3}
+            />
+          )}
+        </main>
+      </div>
     </div>
   );
 }

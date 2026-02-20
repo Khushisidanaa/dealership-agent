@@ -74,7 +74,26 @@ export function analyzeVehicles(
   return { cancel: () => controller.abort() };
 }
 
+export interface AuthUser {
+  user_id: string;
+  name: string;
+  email: string;
+}
+
 export const api = {
+  auth: {
+    signup: (name: string, email: string, password: string) =>
+      request<AuthUser>("/api/auth/signup", {
+        method: "POST",
+        body: JSON.stringify({ name, email, password }),
+      }),
+    login: (email: string, password: string) =>
+      request<AuthUser>("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      }),
+  },
+
   sessions: {
     create: () =>
       request<{ session_id: string; user_id: string; created_at: string }>(
@@ -149,7 +168,7 @@ export const api = {
     /** Get listings for the session using saved requirements (MarketCheck). */
     forSession: (sessionId: string) =>
       request<import("../types").ListingsResponse>(
-        `/api/listings/by-session/${sessionId}`
+        `/api/listings/by-session/${sessionId}`,
       ),
   },
 

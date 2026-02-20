@@ -1,0 +1,20 @@
+Agent: Hi there! I'm calling about the 2023 Rivian R1S Adventure SUV you have listed at Ev Auto Lehi. Is that one still available?
+
+User: You got one?
+
+Agent: Awesome!
+
+Agent: I'm glad to hear that.
+
+User: I did.
+
+Agent: Great!
+
+Agent: So, how's the condition on that Rivian?
+
+User: Did it talk this time? Yeah.
+
+Agent: I’m just trying to gather some details for Alex, who’s interested in that vehicle.
+
+User: Bye.
+

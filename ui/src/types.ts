@@ -1,3 +1,9 @@
+export interface AuthUser {
+  user_id: string;
+  name: string;
+  email: string;
+}
+
 export interface Session {
   session_id: string;
   user_id: string;
@@ -184,5 +190,9 @@ export interface ListingResult {
 export interface ListingsResponse {
   results: ListingResult[];
   total_found: number;
-  price_stats?: { avg_market_price: number; lowest_price: number; highest_price: number };
+  price_stats?: {
+    avg_market_price: number;
+    lowest_price: number;
+    highest_price: number;
+  };
 }
