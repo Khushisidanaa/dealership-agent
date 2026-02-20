@@ -69,9 +69,18 @@ async def get_chat_reply(
     try:
         out = json.loads(raw)
     except json.JSONDecodeError:
-        out = {"reply": raw, "updated_filters": None, "is_ready_to_search": False}
+        out = {
+            "reply": "I've noted your preferences. If you'd like to adjust anything, just say so.",
+            "updated_filters": None,
+            "is_ready_to_search": False,
+        }
+    reply = out.get("reply")
+    if reply is None:
+        reply = raw
+    if not isinstance(reply, str):
+        reply = str(reply) if reply is not None else ""
     return {
-        "reply": out.get("reply", raw),
+        "reply": reply,
         "updated_filters": out.get("updated_filters"),
         "is_ready_to_search": bool(out.get("is_ready_to_search", False)),
     }

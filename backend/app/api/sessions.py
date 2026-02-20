@@ -12,6 +12,7 @@ from app.models.documents import (
     ShortlistDocument,
 )
 from app.models.schemas import SessionResponse
+from app.models.user_requirements import get_user_requirements
 
 router = APIRouter(prefix="/api", tags=["sessions"])
 
@@ -88,10 +89,30 @@ async def list_user_sessions(user_id: str):
     return {"sessions": results}
 
 
+def _is_prefs_empty(prefs: Optional[dict]) -> bool:
+    if prefs is None:
+        return True
+    if not isinstance(prefs, dict):
+        return True
+    return len(prefs) == 0
+
+
 @router.get("/sessions/{session_id}/state")
 async def get_session_state(session_id: str):
-    """Return a snapshot of session progress for resuming."""
+    """Return a snapshot of session progress for resuming.
+    Preferences come from session.preferences (saved by chat); if that's empty,
+    fall back to user_requirements so the UI always sees requirements from MongoDB.
+    """
     session = await get_session_or_404(session_id)
+
+    preferences = session.preferences
+    if _is_prefs_empty(preferences) and session.user_id:
+        user_req = await get_user_requirements(session.user_id)
+        if user_req is not None:
+            preferences = user_req.model_dump()
+
+    if preferences is None:
+        preferences = {}
 
     search_doc = await SearchResultDocument.find_one(
         SearchResultDocument.session_id == session_id,
@@ -116,7 +137,7 @@ async def get_session_state(session_id: str):
     return {
         "session_id": session_id,
         "phase": session.phase,
-        "preferences": session.preferences,
+        "preferences": preferences,
         "has_search_results": has_search,
         "has_calls": has_calls,
         "has_dashboard": has_shortlist or has_calls,

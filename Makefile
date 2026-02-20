@@ -72,8 +72,13 @@ deploy: install build-ui
 	@echo "Then open http://<this-machine-ip>:$(DEPLOY_PORT)"
 
 # Run the app bound to 0.0.0.0 so it is reachable from the public internet.
+# Runs backend + frontend dev server so you see both logs (backend = API, frontend = Vite).
 # Run this on the Linode VM (after make deploy). Use tmux/screen or systemd to keep it running.
+# Use http://<ip>:5173 for live frontend; use http://<ip>:$(DEPLOY_PORT) for backend-served UI (requires recent make build-ui).
 deploy-run:
-	@echo "Starting app on http://0.0.0.0:$(DEPLOY_PORT) (public)"
-	@echo "Press Ctrl+C to stop."
-	cd $(BACKEND) && $(PYTHON) -m uvicorn app.main:app --host 0.0.0.0 --port $(DEPLOY_PORT)
+	@echo "Starting backend + frontend (logs from both below)"
+	@echo "Frontend (UI): http://0.0.0.0:5173  |  Backend (API + static): http://0.0.0.0:$(DEPLOY_PORT)"
+	@echo "Press Ctrl+C to stop both."
+	npx concurrently -k -n backend,frontend \
+		"cd $(BACKEND) && $(PYTHON) -m uvicorn app.main:app --host 0.0.0.0 --port $(DEPLOY_PORT)" \
+		"cd $(UI) && $(NPM) run dev"

@@ -9,6 +9,11 @@ import { RecommendationsView } from "./components/RecommendationsView";
 import { AnalyzingView } from "./components/AnalyzingView";
 import { Dashboard } from "./components/Dashboard";
 import { RequirementsForm } from "./components/RequirementsForm";
+import { RequirementsModal } from "./components/RequirementsModal";
+import {
+  getDefaultRequirements,
+  mergeWithDefaults,
+} from "./components/requirementsFields";
 import type { VehicleResult, TopVehicle } from "./types";
 import "./App.css";
 
@@ -38,6 +43,9 @@ function App() {
   const [startTab, setStartTab] = useState<StartTab>("chat");
   const [isChatOpen, setIsChatOpen] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [requirements, setRequirements] = useState<Record<string, unknown>>(
+    getDefaultRequirements,
+  );
 
   const [recentSessions, setRecentSessions] = useState<SessionSummary[]>([]);
   const [isSessionDropdownOpen, setIsSessionDropdownOpen] = useState(false);
@@ -76,6 +84,7 @@ function App() {
       setSearchVehicles([]);
       setTop3([]);
       setRefreshKey(0);
+      setRequirements(getDefaultRequirements());
       setView("session");
     } catch {
       sessionCreatedRef.current = false;
@@ -107,6 +116,9 @@ function App() {
       setSearchVehicles([]);
       setTop3([]);
       setRefreshKey(0);
+      setRequirements(
+        mergeWithDefaults((state.preferences as Record<string, unknown>) || {}),
+      );
       setView("session");
     } catch {
       setSessionError("Failed to resume session.");
@@ -148,13 +160,37 @@ function App() {
     setSearchVehicles([]);
     setTop3([]);
     setRecentSessions([]);
+    setRequirements(getDefaultRequirements());
   }, []);
 
   const handleChatReply = useCallback(
-    (_filters?: Record<string, unknown>, readyToSearch?: boolean) => {
+    (updatedFilters?: Record<string, unknown>, readyToSearch?: boolean) => {
+      const hasFilters =
+        updatedFilters != null &&
+        typeof updatedFilters === "object" &&
+        !Array.isArray(updatedFilters) &&
+        Object.keys(updatedFilters).length > 0;
+
+      if (hasFilters) {
+        setRequirements((prev) =>
+          mergeWithDefaults({ ...prev, ...updatedFilters }),
+        );
+      }
       if (readyToSearch) setIsRequirementsComplete(true);
+      // Only sync from server when we didn't get updated_filters (e.g. to backfill).
+      // When we did get updated_filters, the response is the source of truth; getState
+      // can return before the backend has persisted and would overwrite with stale/empty.
+      if (sessionId && !hasFilters) {
+        api.sessions
+          .getState(sessionId)
+          .then((state) => {
+            const prefs = (state.preferences as Record<string, unknown>) || {};
+            setRequirements(mergeWithDefaults(prefs));
+          })
+          .catch(() => {});
+      }
     },
-    [],
+    [sessionId],
   );
 
   const handleGoToResults = useCallback(() => {
@@ -220,6 +256,7 @@ function App() {
     setIsRequirementsComplete(false);
     setSearchVehicles([]);
     setTop3([]);
+    setRequirements(getDefaultRequirements());
   }, [authUser, fetchRecentSessions]);
 
   const toggleChat = useCallback(() => setIsChatOpen((o) => !o), []);
@@ -602,7 +639,7 @@ function App() {
               </div>
 
               {startTab === "chat" ? (
-                <div className="app-content-center">
+                <div className="app-content-center app-content-center--column">
                   <div className="app-welcome-card">
                     <h2>Welcome, {authUser.name}</h2>
                     <p>
@@ -619,10 +656,18 @@ function App() {
                       <span className="hint-chip">Must-have features</span>
                     </div>
                   </div>
+                  <RequirementsModal
+                    requirements={requirements}
+                    onRequirementsChange={setRequirements}
+                    sessionId={sessionId}
+                    onMarkComplete={handleGoToResults}
+                  />
                 </div>
               ) : (
                 <RequirementsForm
                   sessionId={sessionId}
+                  requirements={requirements}
+                  onRequirementsChange={setRequirements}
                   onSearchDone={handleFormSearchDone}
                 />
               )}

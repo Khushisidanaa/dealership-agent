@@ -2,7 +2,11 @@ from fastapi import APIRouter
 from pydantic import ValidationError
 
 from app.api.sessions import get_session_or_404
-from app.models.documents import ChatMessageDocument, UserDocument
+from app.models.documents import (
+    ChatMessageDocument,
+    SessionDocument,
+    UserDocument,
+)
 from app.models.schemas import (
     ChatRequest,
     ChatResponse,
@@ -65,14 +69,25 @@ async def send_chat_message(session_id: str, body: ChatRequest):
         merged_req = merge_filters_into_requirements(current_req, updated_filters)
         await update_user_requirements(user_id, merged_req)
         merged_dict = merged_req.model_dump()
-        session.preferences = merged_dict
-        session.additional_filters = {**additional_filters, **updated_filters}
-        await session.save()
+        additional_merged = {**additional_filters, **updated_filters}
     except ValidationError:
-        # LLM returned invalid values; keep current requirements in DB, only update session filters
-        session.preferences = current_req.model_dump()
-        session.additional_filters = {**additional_filters, **updated_filters}
-        await session.save()
+        merged_dict = current_req.model_dump()
+        additional_merged = {**additional_filters, **updated_filters}
+
+    session.preferences = merged_dict
+    session.additional_filters = additional_merged
+    await session.save()
+    # Explicitly persist preferences to session document in MongoDB so UI and search see them
+    session_doc = await SessionDocument.find_one(
+        SessionDocument.session_id == session_id
+    )
+    if session_doc is not None:
+        await session_doc.update({
+            "$set": {
+                "preferences": merged_dict,
+                "additional_filters": additional_merged,
+            },
+        })
 
     # Persist assistant message
     assistant_msg = ChatMessageDocument(

@@ -53,11 +53,17 @@ export function ChatSidebar({
     setSending(true);
     try {
       const res = await api.chat.send(sessionId, text);
+      const replyText =
+        typeof res.reply === "string"
+          ? res.reply
+          : res.reply != null
+            ? String(res.reply)
+            : "";
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content: res.reply,
+          content: replyText,
           timestamp: new Date().toISOString(),
         },
       ]);
