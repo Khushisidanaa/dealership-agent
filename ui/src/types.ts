@@ -157,6 +157,7 @@ export interface DealerCallState {
   vehicle_id: string;
   dealer_name: string;
   title: string;
+  image_urls: string[];
   status: DealerCallStatus;
   transcript_text: string;
   summary: CallSummary | null;

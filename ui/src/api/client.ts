@@ -22,13 +22,18 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 export function analyzeVehicles(
   sessionId: string,
   onEvent: (eventType: string, data: Record<string, unknown>) => void,
+  vehicleIds?: string[],
 ): { cancel: () => void } {
   const controller = new AbortController();
 
   const run = async () => {
+    const body = vehicleIds?.length
+      ? JSON.stringify({ vehicle_ids: vehicleIds })
+      : undefined;
     const resp = await fetch(`${API_BASE}/api/sessions/${sessionId}/analyze`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      body,
       signal: controller.signal,
     });
 

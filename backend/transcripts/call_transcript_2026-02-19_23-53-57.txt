@@ -1,0 +1,4 @@
+Agent: Hi there! I'm calling about the 2019 TOYOTA CAMRY you have listed at Monaco Auto Sales LLC. Is that one still available?
+
+User: Bye.
+

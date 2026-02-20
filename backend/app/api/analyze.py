@@ -171,6 +171,13 @@ async def analyze_vehicles(session_id: str, request: Request):
     session = await get_session_or_404(session_id)
     settings = get_settings()
 
+    body = {}
+    try:
+        body = await request.json()
+    except Exception:
+        pass
+    requested_ids = body.get("vehicle_ids") if isinstance(body, dict) else None
+
     search_doc = await SearchResultDocument.find_one(
         SearchResultDocument.session_id == session_id,
         SearchResultDocument.status == "completed",
@@ -179,7 +186,15 @@ async def analyze_vehicles(session_id: str, request: Request):
         raise HTTPException(status_code=400, detail="No search results to analyze. Run search first.")
 
     all_vehicles = search_doc.vehicles
-    vehicles = all_vehicles[:CALL_LIMIT] if CALL_LIMIT else all_vehicles
+
+    if requested_ids and isinstance(requested_ids, list):
+        id_set = set(requested_ids)
+        vehicles = [v for v in all_vehicles if v.get("vehicle_id") in id_set]
+        if not vehicles:
+            vehicles = all_vehicles[:CALL_LIMIT] if CALL_LIMIT else all_vehicles
+    else:
+        vehicles = all_vehicles[:CALL_LIMIT] if CALL_LIMIT else all_vehicles
+
     preferences = session.preferences or {}
 
     public_url = settings.server_base_url.rstrip("/")
@@ -233,6 +248,8 @@ async def analyze_vehicles(session_id: str, request: Request):
             yield _sse_event("calling", {
                 "vehicle_id": vid,
                 "dealer_name": dealer_name,
+                "title": title,
+                "image_urls": vehicle.get("image_urls", []),
                 "index": i,
                 "total": len(vehicles),
                 "message": f"Calling {dealer_name} about {title}...",

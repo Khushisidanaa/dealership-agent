@@ -70,99 +70,111 @@ export function AnalyzingView({
     setPhase("calling");
     setOverallMessage("Preparing to call dealers...");
 
-    const { cancel } = analyzeVehicles(sessionId, (eventType, data) => {
-      switch (eventType) {
-        case "start": {
-          const total = (data.total_vehicles as number) || 0;
-          setOverallMessage(
-            `Calling ${total} dealer${total !== 1 ? "s" : ""}...`,
-          );
-          break;
+    const vehicleIds = vehicles.map((v) => v.vehicle_id);
+    const { cancel } = analyzeVehicles(
+      sessionId,
+      (eventType, data) => {
+        switch (eventType) {
+          case "start": {
+            const total = (data.total_vehicles as number) || 0;
+            setOverallMessage(
+              `Calling ${total} dealer${total !== 1 ? "s" : ""}...`,
+            );
+            break;
+          }
+          case "calling": {
+            const vid = data.vehicle_id as string;
+            const sseTitle = (data.title as string) || "";
+            const sseImages = (data.image_urls as string[]) || [];
+            setDealers((prev) => {
+              const hasEntry = prev.some((d) => d.vehicle_id === vid);
+              if (hasEntry) {
+                return prev.map((d) =>
+                  d.vehicle_id === vid
+                    ? {
+                        ...d,
+                        status: "calling" as const,
+                        message: (data.message as string) || "",
+                        title: sseTitle || d.title,
+                        image_urls: sseImages.length ? sseImages : d.image_urls,
+                      }
+                    : d,
+                );
+              }
+              return [
+                ...prev,
+                {
+                  vehicle_id: vid,
+                  dealer_name: (data.dealer_name as string) || "",
+                  title: sseTitle,
+                  image_urls: sseImages,
+                  status: "calling" as const,
+                  transcript_text: "",
+                  summary: null,
+                  message: (data.message as string) || "",
+                },
+              ];
+            });
+            setOverallMessage((data.message as string) || "Calling dealer...");
+            break;
+          }
+          case "call_connected": {
+            updateDealer(data.vehicle_id as string, {
+              status: "connected",
+              message: (data.message as string) || "",
+            });
+            setOverallMessage(
+              (data.message as string) || "AI agent is talking...",
+            );
+            break;
+          }
+          case "call_complete": {
+            updateDealer(data.vehicle_id as string, {
+              status: "done",
+              transcript_text: (data.transcript_text as string) || "",
+              message: (data.message as string) || "",
+            });
+            break;
+          }
+          case "call_failed": {
+            const errMsg =
+              (data.message as string) ||
+              (data.error as string) ||
+              "Call failed";
+            updateDealer(data.vehicle_id as string, {
+              status: "failed",
+              message: errMsg,
+            });
+            setOverallMessage(errMsg);
+            break;
+          }
+          case "summary_ready": {
+            updateDealer(data.vehicle_id as string, {
+              summary: (data.summary as CallSummary) || null,
+            });
+            setOverallMessage((data.message as string) || "Summary ready.");
+            break;
+          }
+          case "ranking": {
+            setPhase("ranking");
+            setOverallMessage("Ranking vehicles based on call insights...");
+            break;
+          }
+          case "complete": {
+            const results = (data.top3 as TopVehicle[]) || [];
+            setTop3(results);
+            setPhase("done");
+            setOverallMessage((data.message as string) || "Analysis complete!");
+            break;
+          }
+          case "error": {
+            setOverallMessage(`Error: ${data.message}`);
+            break;
+          }
         }
-        case "calling": {
-          const vid = data.vehicle_id as string;
-          setDealers((prev) => {
-            const hasEntry = prev.some((d) => d.vehicle_id === vid);
-            if (hasEntry) {
-              return prev.map((d) =>
-                d.vehicle_id === vid
-                  ? {
-                      ...d,
-                      status: "calling" as const,
-                      message: (data.message as string) || "",
-                    }
-                  : d,
-              );
-            }
-            return [
-              ...prev,
-              {
-                vehicle_id: vid,
-                dealer_name: (data.dealer_name as string) || "",
-                title: (data.message as string) || "",
-                status: "calling" as const,
-                transcript_text: "",
-                summary: null,
-                message: (data.message as string) || "",
-              },
-            ];
-          });
-          setOverallMessage((data.message as string) || "Calling dealer...");
-          break;
-        }
-        case "call_connected": {
-          updateDealer(data.vehicle_id as string, {
-            status: "connected",
-            message: (data.message as string) || "",
-          });
-          setOverallMessage(
-            (data.message as string) || "AI agent is talking...",
-          );
-          break;
-        }
-        case "call_complete": {
-          updateDealer(data.vehicle_id as string, {
-            status: "done",
-            transcript_text: (data.transcript_text as string) || "",
-            message: (data.message as string) || "",
-          });
-          break;
-        }
-        case "call_failed": {
-          const errMsg =
-            (data.message as string) || (data.error as string) || "Call failed";
-          updateDealer(data.vehicle_id as string, {
-            status: "failed",
-            message: errMsg,
-          });
-          setOverallMessage(errMsg);
-          break;
-        }
-        case "summary_ready": {
-          updateDealer(data.vehicle_id as string, {
-            summary: (data.summary as CallSummary) || null,
-          });
-          setOverallMessage((data.message as string) || "Summary ready.");
-          break;
-        }
-        case "ranking": {
-          setPhase("ranking");
-          setOverallMessage("Ranking vehicles based on call insights...");
-          break;
-        }
-        case "complete": {
-          const results = (data.top3 as TopVehicle[]) || [];
-          setTop3(results);
-          setPhase("done");
-          setOverallMessage((data.message as string) || "Analysis complete!");
-          break;
-        }
-        case "error": {
-          setOverallMessage(`Error: ${data.message}`);
-          break;
-        }
-      }
-    });
+      },
+      vehicleIds,
+    );
     cancelRef.current = cancel;
     return () => cancel();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -278,7 +290,11 @@ export function AnalyzingView({
               const vehicle = vehicles.find(
                 (v) => v.vehicle_id === d.vehicle_id,
               );
-              const imgSrc = vehicle?.image_urls?.[0] || PLACEHOLDER_IMG;
+              const imgSrc =
+                vehicle?.image_urls?.[0] ||
+                d.image_urls?.[0] ||
+                PLACEHOLDER_IMG;
+              const displayTitle = vehicle?.title || d.title || d.vehicle_id;
               const isExpanded = expandedTranscript === d.vehicle_id;
 
               return (
@@ -297,9 +313,7 @@ export function AnalyzingView({
                     />
                     <div className="call-card-info">
                       <div className="call-card-dealer">{d.dealer_name}</div>
-                      <div className="call-card-vehicle">
-                        {vehicle?.title || d.vehicle_id}
-                      </div>
+                      <div className="call-card-vehicle">{displayTitle}</div>
                       <div
                         className="call-card-status"
                         style={{ color: STATUS_COLORS[d.status] }}
