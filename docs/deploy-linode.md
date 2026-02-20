@@ -25,8 +25,12 @@ Create `backend/.env` with at least:
 MONGODB_URL=mongodb://localhost:27017
 MONGODB_DB_NAME=dealership_agent
 OPENAI_API_KEY=sk-...
+# Required for voice (Twilio + WebSocket): use your Linode's direct URL — do NOT use a URL shortener (TinyURL, etc.)
+SERVER_BASE_URL=http://YOUR_LINODE_PUBLIC_IP:8000
 # Optional: MARKETCHECK_API_KEY=... for listings
 ```
+
+**Important for voice/WebSocket:** `SERVER_BASE_URL` must be the **direct** URL Twilio can reach (e.g. `http://<linode-ip>:8000`). Do **not** set it to a TinyURL or other shortener. Shorteners return HTTP redirects (301/302); Twilio’s Media Stream needs a WebSocket handshake (HTTP 101). Use a short URL only for opening the app in a browser; the backend must use the real base URL.
 
 ### Python venv (recommended)
 
