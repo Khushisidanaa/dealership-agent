@@ -11,6 +11,7 @@ from app.models.database import init_db, close_db, get_db_handler
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 UI_DIST = PROJECT_ROOT / "ui" / "dist"
 from app.api import (
+    auth,
     sessions,
     preferences,
     chat,
@@ -46,6 +47,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router)
 app.include_router(sessions.router)
 app.include_router(preferences.router)
 app.include_router(chat.router)

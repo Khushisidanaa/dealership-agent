@@ -18,6 +18,9 @@ def new_uuid() -> str:
 class UserDocument(Document):
     """User stored in MongoDB. One doc per user; user_id is the primary key."""
     user_id: str = Field(default_factory=new_uuid)
+    name: str = ""
+    email: Optional[str] = None
+    password_hash: Optional[str] = None
     created_at: datetime = Field(default_factory=utc_now)
 
     class Settings:

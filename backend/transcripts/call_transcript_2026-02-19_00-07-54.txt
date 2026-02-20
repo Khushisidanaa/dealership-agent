@@ -1,0 +1,100 @@
+Agent: Hi there! I'm calling about the 2023 Toyota 4Runner you have listed at Audi Lehi. Is that one still available?
+
+User: Yes.
+
+Agent: Awesome!
+
+Agent: How's the condition of that 4Runner?
+
+Agent: Has it been in any accidents or had any major repairs?
+
+Agent: Great!
+
+Agent: And how many previous owners has it had?
+
+User: It has been an accident.
+
+Agent: Got it.
+
+Agent: Is it a clean title despite that?
+
+Agent: And are there any known issues I should be aware of?
+
+Agent: Also, when was the last service done on it?
+
+User: By the
+
+Agent: Thanks for that!
+
+User: The service was two years ago.
+
+Agent: Thanks for the info!
+
+User: Twenty twenty seven.
+
+Agent: Okay, so it was serviced in 2021.
+
+User: When was the last oil change?
+
+User: No. You're the dealer. I'm
+
+Agent: Oh, my bad!
+
+Agent: Thanks for your patience.
+
+Agent: Let me ask you, what's the best out-the-door price on that 4Runner, including all fees and taxes?
+
+Agent: Are there any dealer fees on top of the listed price?
+
+Agent: And do you have any promotions or incentives going on right now?
+
+User: Okay. There are no dealer fees. The total cost will be twenty six thousand nine ninety nine. And there is a promotion where you get what do say, if you finance the car with us,
+
+User: the first ninety days, you pay no interest.
+
+Agent: That sounds like a solid deal!
+
+Agent: Do you guys offer financing?
+
+Agent: What kind of rates are you seeing right now?
+
+Agent: And is there a way for Alex to get pre-approved before coming in?
+
+User: E v
+
+User: you would require I mean, you're expected to give us your credit score, your bank statements, and your proof of income.
+
+User: And based on your credit score, we can get you a competitive
+
+User: interest rate.
+
+Agent: Thanks for clarifying that!
+
+Agent: I'll definitely pass that along to Alex.
+
+Agent: One last thing—what are your hours?
+
+Agent: Can I schedule a test drive for this weekend?
+
+User: Some days we're closed, but Saturday, are open between nine AM and five PM. Anytime between that and work, just give us a heads up one hour prior.
+
+Agent: Great, that sounds good!
+
+Agent: I’ll let Alex know about the hours and the need to give a heads up for the test drive.
+
+Agent: Thanks for all the info!
+
+Agent: I’ll pass everything along to Alex, and they’ll probably reach out to schedule something.
+
+User: Alright.
+
+Agent: Thanks for your time!
+
+Agent: Have a great day!
+
+Agent: Goodbye!
+
+User: The call ends with you know?
+
+User: Bye.
+

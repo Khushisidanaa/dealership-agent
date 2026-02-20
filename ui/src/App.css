@@ -1,11 +1,6 @@
-.app {
-  display: flex;
-  flex-direction: column;
-  min-height: 100%;
-  background: var(--bg-primary);
-}
+/* ── Loader ── */
 
-.app-loading {
+.app-loader {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -15,7 +10,7 @@
   color: var(--text-secondary);
 }
 
-.app-loading-spinner {
+.app-loader-spinner {
   width: 40px;
   height: 40px;
   border: 3px solid var(--border);
@@ -24,27 +19,18 @@
   animation: spin 0.8s linear infinite;
 }
 
-.app-loading-error {
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.app-loader-error {
   color: var(--error);
   font-weight: 500;
 }
 
-.app-loading-hint {
-  font-size: 0.9rem;
-  color: var(--text-muted);
-  margin-top: 0.5rem;
-}
-
-.app-loading-hint code {
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
-  background: var(--bg-secondary);
-  padding: 0.2rem 0.4rem;
-  border-radius: var(--radius-sm);
-}
-
-.app-loading-retry {
-  margin-top: 1rem;
+.app-loader-retry {
   padding: 0.5rem 1rem;
   background: var(--accent);
   color: var(--bg-primary);
@@ -53,65 +39,247 @@
   font-weight: 600;
 }
 
-.app-loading-retry:hover {
-  background: var(--accent-hover);
+/* ── Shell ── */
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
+/* ── Top Bar ── */
 
-.app-header {
+.app-topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.75rem 1.5rem;
+  height: 56px;
+  padding: 0 1.25rem;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  z-index: 10;
 }
 
-.app-logo {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--accent);
-  letter-spacing: -0.02em;
-}
-
-.app-nav {
+.app-brand {
   display: flex;
+  align-items: center;
   gap: 0.5rem;
 }
 
-.app-nav button {
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--border);
+.app-chat-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
   border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
   background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-right: 0.25rem;
+}
+
+.app-chat-toggle:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: rgba(232, 184, 74, 0.08);
+}
+
+.app-brand-icon {
+  color: var(--accent);
+  display: flex;
+}
+
+.app-brand-text {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.app-topbar-user {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.app-user-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.app-user-name {
+  font-size: 0.85rem;
   color: var(--text-secondary);
   font-weight: 500;
 }
 
-.app-nav button:hover:not(:disabled) {
+/* ── Logout ── */
+
+.app-logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.app-logout-btn:hover {
+  color: var(--error);
+  border-color: var(--error);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+/* ── Body: sidebar + content ── */
+
+.app-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.app-body--full {
+  /* Dashboard: no sidebar, full width */
+}
+
+/* ── Main Content ── */
+
+.app-content {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  background: var(--bg-primary);
+}
+
+.app-content--full {
+  /* Full-width mode (dashboard) */
+}
+
+/* ── Start Area: tabbed chat / form ── */
+
+.app-start-area {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.app-start-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary);
+  flex-shrink: 0;
+}
+
+.app-start-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.85rem 1.5rem;
+  background: transparent;
+  border: none;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.app-start-tab--active {
+  color: var(--accent);
+}
+
+.app-start-tab--active::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 1rem;
+  right: 1rem;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 2px;
+}
+
+.app-start-tab:hover:not(.app-start-tab--active) {
+  color: var(--text-primary);
   background: var(--bg-tertiary);
+}
+
+.app-content-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 2rem;
+}
+
+.app-welcome-card {
+  max-width: 480px;
+  text-align: center;
+  padding: 2.5rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  animation: fade-in 0.4s ease-out;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.app-welcome-card h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.4rem;
+  font-weight: 700;
   color: var(--text-primary);
 }
 
-.app-nav button.active {
-  background: var(--accent);
-  color: var(--bg-primary);
-  border-color: var(--accent);
+.app-welcome-card p {
+  margin: 0 0 1.5rem;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.5;
 }
 
-.app-nav button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.app-main {
-  flex: 1;
+.app-welcome-hints {
   display: flex;
-  flex-direction: column;
-  min-height: 0;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.hint-chip {
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 500;
+  border: 1px solid var(--border);
 }

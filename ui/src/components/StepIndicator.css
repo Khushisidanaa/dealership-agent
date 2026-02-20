@@ -1,0 +1,77 @@
+.steps {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.step-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  border: 2px solid var(--border);
+  transition: all 0.3s;
+  flex-shrink: 0;
+}
+
+.step-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  white-space: nowrap;
+  transition: color 0.3s;
+}
+
+.step-line {
+  width: 32px;
+  height: 2px;
+  background: var(--border);
+  margin: 0 0.35rem;
+  transition: background 0.3s;
+}
+
+.step--active .step-dot {
+  background: var(--accent);
+  color: var(--bg-primary);
+  border-color: var(--accent);
+}
+
+.step--active .step-label {
+  color: var(--accent);
+}
+
+.step--done .step-dot {
+  background: var(--success);
+  color: #fff;
+  border-color: var(--success);
+}
+
+.step--done .step-label {
+  color: var(--text-secondary);
+}
+
+.step--done + .step .step-line,
+.step--done .step-line {
+  background: var(--success);
+}
+
+@media (max-width: 768px) {
+  .step-label {
+    display: none;
+  }
+  .step-line {
+    width: 20px;
+  }
+}

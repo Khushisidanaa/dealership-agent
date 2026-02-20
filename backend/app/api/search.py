@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections import defaultdict
+
 from fastapi import APIRouter
 
 import logging
@@ -16,6 +18,8 @@ from app.models.schemas import (
 from app.services.marketcheck_service import search_listings
 
 log = logging.getLogger(__name__)
+
+MAX_PER_DEALER = 5
 
 router = APIRouter(prefix="/api/sessions/{session_id}/search", tags=["search"])
 
@@ -62,6 +66,36 @@ def _flatten_listing(r, rank: int) -> dict:
     }
 
 
+def _resolve_make_model(merged: dict) -> tuple[str, str]:
+    """Extract make/model from merged preferences, falling back to brand_preference/model_preference arrays."""
+    make = merged.get("make", "") or ""
+    model = merged.get("model", "") or ""
+
+    if not make and merged.get("brand_preference"):
+        brands = merged["brand_preference"]
+        if isinstance(brands, list) and brands:
+            make = str(brands[0])
+
+    if not model and merged.get("model_preference"):
+        models = merged["model_preference"]
+        if isinstance(models, list) and models:
+            model = str(models[0])
+
+    return make, model
+
+
+def _limit_per_dealer(vehicles: list[dict], max_per_dealer: int = MAX_PER_DEALER) -> list[dict]:
+    """Cap results per dealer for diversity, preserving original rank order."""
+    by_dealer: dict[str, list[dict]] = defaultdict(list)
+    for v in vehicles:
+        dealer = v.get("dealer_name") or "Unknown"
+        if len(by_dealer[dealer]) < max_per_dealer:
+            by_dealer[dealer].append(v)
+    result = [v for group in by_dealer.values() for v in group]
+    result.sort(key=lambda v: v.get("rank", 999))
+    return result
+
+
 async def _run_search(session_id: str) -> tuple[list[dict], dict | None, str]:
     """Search MarketCheck for vehicles matching session preferences."""
     session = await get_session_or_404(session_id)
@@ -69,8 +103,7 @@ async def _run_search(session_id: str) -> tuple[list[dict], dict | None, str]:
     extra = session.additional_filters or {}
     merged = {**prefs, **extra}
 
-    make = merged.get("make", "") or ""
-    model = merged.get("model", "") or ""
+    make, model = _resolve_make_model(merged)
     zip_code = merged.get("zip_code", "") or "90210"
     radius = int(merged.get("radius_miles") or merged.get("max_distance_miles") or 50)
     year_min = merged.get("year_min")
@@ -79,6 +112,8 @@ async def _run_search(session_id: str) -> tuple[list[dict], dict | None, str]:
     price_max = merged.get("price_max")
     max_mileage = merged.get("max_mileage")
     condition = merged.get("condition", "used") or "used"
+
+    log.info("Search params: make=%s model=%s zip=%s radius=%s", make, model, zip_code, radius)
 
     try:
         results, total, price_stats_obj = await search_listings(
@@ -92,13 +127,16 @@ async def _run_search(session_id: str) -> tuple[list[dict], dict | None, str]:
             price_min=int(price_min) if price_min else None,
             price_max=int(price_max) if price_max else None,
             max_mileage=int(max_mileage) if max_mileage else None,
-            rows=20,
+            rows=50,
         )
     except Exception as exc:
         log.exception("MarketCheck search failed: %s", exc)
         results, total, price_stats_obj = [], 0, None
 
-    vehicles = [_flatten_listing(r, i + 1) for i, r in enumerate(results)]
+    all_vehicles = [_flatten_listing(r, i + 1) for i, r in enumerate(results)]
+    vehicles = _limit_per_dealer(all_vehicles)
+    for i, v in enumerate(vehicles):
+        v["rank"] = i + 1
     price_stats = price_stats_obj.model_dump() if price_stats_obj else None
 
     search_doc = await SearchResultDocument.find_one(

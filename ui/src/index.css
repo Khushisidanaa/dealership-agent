@@ -15,15 +15,21 @@
   --error: #f87171;
   --radius: 10px;
   --radius-sm: 6px;
+  --radius-lg: 14px;
   --font-sans: "Outfit", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
 * {
   box-sizing: border-box;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
   margin: 0;
 }
@@ -41,7 +47,9 @@ button {
   cursor: pointer;
 }
 
-input, textarea, select {
+input,
+textarea,
+select {
   font-family: inherit;
 }
 
@@ -49,6 +57,24 @@ a {
   color: var(--accent);
   text-decoration: none;
 }
+
 a:hover {
   text-decoration: underline;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
 }

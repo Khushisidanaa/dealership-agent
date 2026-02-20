@@ -5,6 +5,7 @@ import type {
   DashboardResponse,
   DealershipGroup,
   TestDriveBooking,
+  TopVehicle,
 } from "../types";
 import { TestDriveModal } from "./TestDriveModal";
 import "./Dashboard.css";
@@ -12,6 +13,7 @@ import "./Dashboard.css";
 interface DashboardProps {
   sessionId: string;
   onBackToChat: () => void;
+  top3?: TopVehicle[];
 }
 
 const PLACEHOLDER_IMG =
@@ -51,7 +53,11 @@ function groupByDealer(data: DashboardResponse): DealershipGroup[] {
   });
 }
 
-export function Dashboard({ sessionId, onBackToChat }: DashboardProps) {
+export function Dashboard({
+  sessionId,
+  onBackToChat,
+  top3: _top3,
+}: DashboardProps) {
   const [groups, setGroups] = useState<DealershipGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
