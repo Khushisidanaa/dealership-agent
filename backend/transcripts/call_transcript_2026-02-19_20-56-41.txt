@@ -1,0 +1,10 @@
+Agent: Hi there! I'm calling about the 2023 Tesla Model S Plaid Hatchback you have listed at Ev Auto Lehi. Is that one still available?
+
+User: Test
+
+Agent: Hi!
+
+Agent: I’m here to help.
+
+Agent: Just let me know if you need assistance with anything specific!
+

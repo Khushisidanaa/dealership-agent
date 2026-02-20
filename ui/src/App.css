@@ -89,6 +89,22 @@
   background: rgba(232, 184, 74, 0.08);
 }
 
+.app-brand-home {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  color: inherit;
+  font-family: inherit;
+}
+
+.app-brand-home:hover .app-brand-text {
+  color: var(--accent);
+}
+
 .app-brand-icon {
   color: var(--accent);
   display: flex;
@@ -99,6 +115,104 @@
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.02em;
+  transition: color 0.15s;
+}
+
+.app-session-switcher {
+  position: relative;
+  margin-left: 0.25rem;
+}
+
+.app-session-switcher-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.app-session-switcher-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.app-session-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 240px;
+  max-height: 320px;
+  overflow-y: auto;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  z-index: 100;
+  padding: 0.35rem 0;
+  animation: dropdown-in 0.12s ease-out;
+}
+
+@keyframes dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.app-session-dropdown-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  width: 100%;
+  padding: 0.55rem 0.85rem;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.82rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.app-session-dropdown-item:hover {
+  background: var(--bg-tertiary);
+}
+
+.app-session-dropdown-new {
+  font-weight: 700;
+  color: var(--accent);
+  border-bottom: 1px solid var(--border);
+}
+
+.app-session-dropdown-home {
+  font-weight: 600;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+  font-size: 0.78rem;
+}
+
+.app-session-dropdown-label {
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-session-dropdown-phase {
+  font-size: 0.7rem;
+  color: var(--text-muted);
 }
 
 .app-topbar-user {
@@ -124,6 +238,30 @@
   font-size: 0.85rem;
   color: var(--text-secondary);
   font-weight: 500;
+}
+
+/* ── Dashboard Shortcut ── */
+
+.app-dashboard-shortcut {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.7rem;
+  background: rgba(74, 222, 128, 0.1);
+  color: var(--success);
+  border: 1px solid rgba(74, 222, 128, 0.25);
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.app-dashboard-shortcut:hover {
+  background: rgba(74, 222, 128, 0.18);
+  border-color: var(--success);
 }
 
 /* ── Logout ── */

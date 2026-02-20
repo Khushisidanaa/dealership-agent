@@ -1,0 +1,26 @@
+Agent: Hey, I'm calling about the 2023 Tesla Model S Plaid Hatchback you have listed at Ev Auto Lehi -- is that one still available?
+
+User: Can you remove the missed call meeting?
+
+Agent: Oh, got it!
+
+Agent: Thanks for the info.
+
+Agent: How's the condition on that one?
+
+Agent: Any accidents or issues I should know about?
+
+User: No.
+
+Agent: Okay, cool!
+
+Agent: And what's the best out-the-door price on it?
+
+User: Twenty two thousand dollars.
+
+Agent: Awesome, thanks for the info.
+
+Agent: I'll let Alex know and they'll probably reach out to set something up.
+
+Agent: Appreciate it!
+

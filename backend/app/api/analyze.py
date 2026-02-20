@@ -27,7 +27,7 @@ from app.agent.prompts.dealer_call import (
 )
 from app.agent.prompts.call_summary import build_summary_prompt
 from app.config import get_settings
-from app.models.documents import SearchResultDocument
+from app.models.documents import SearchResultDocument, CommunicationDocument, SessionDocument
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/sessions/{session_id}", tags=["analyze"])
@@ -256,6 +256,10 @@ async def analyze_vehicles(session_id: str, request: Request):
     ]
 
     async def event_stream():
+        await SessionDocument.find_one(
+            SessionDocument.session_id == session_id
+        ).update({"$set": {"phase": "calling"}})
+
         yield _sse_event("start", {
             "total_vehicles": len(vehicles),
             "all_vehicles": vehicles_for_ui,
@@ -339,6 +343,21 @@ async def analyze_vehicles(session_id: str, request: Request):
 
             summaries[vid] = summary
 
+            try:
+                comm = CommunicationDocument(
+                    session_id=session_id,
+                    vehicle_id=vid,
+                    comm_type="call",
+                    status="completed" if transcript_text else "failed",
+                    dealer_phone=call_phone,
+                    transcript=[{"text": transcript_text}] if transcript_text else [],
+                    summary=summary.get("key_takeaways", ""),
+                    call_details=summary,
+                )
+                await comm.insert()
+            except Exception as exc:
+                log.warning("Failed to persist call record for %s: %s", vid, exc)
+
             yield _sse_event("summary_ready", {
                 "vehicle_id": vid,
                 "dealer_name": dealer_name,
@@ -371,6 +390,10 @@ async def analyze_vehicles(session_id: str, request: Request):
                 "image_urls": v.get("image_urls", []),
                 "call_summary": s,
             })
+
+        await SessionDocument.find_one(
+            SessionDocument.session_id == session_id
+        ).update({"$set": {"phase": "dashboard"}})
 
         yield _sse_event("complete", {
             "top3": top3_results,

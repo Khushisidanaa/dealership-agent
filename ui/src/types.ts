@@ -48,6 +48,7 @@ export interface CommunicationStatusOut {
   text_sent: boolean;
   call_made: boolean;
   response?: string;
+  call_details?: CallSummary;
 }
 
 export interface DashboardResponse {

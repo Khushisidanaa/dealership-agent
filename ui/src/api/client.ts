@@ -82,6 +82,26 @@ export interface AuthUser {
   email: string;
 }
 
+export interface SessionSummary {
+  session_id: string;
+  created_at: string;
+  phase: string;
+  label: string;
+  vehicle_count: number;
+  has_calls: boolean;
+}
+
+export interface SessionState {
+  session_id: string;
+  phase: string;
+  preferences: Record<string, unknown> | null;
+  has_search_results: boolean;
+  has_calls: boolean;
+  has_dashboard: boolean;
+  vehicle_count: number;
+  chat_message_count: number;
+}
+
 export const api = {
   auth: {
     signup: (name: string, email: string, password: string) =>
@@ -97,17 +117,21 @@ export const api = {
   },
 
   sessions: {
-    create: () =>
+    create: (userId?: string) =>
       request<{ session_id: string; user_id: string; created_at: string }>(
         "/api/sessions",
         {
           method: "POST",
+          body: JSON.stringify(userId ? { user_id: userId } : {}),
         },
       ),
+    listForUser: (userId: string) =>
+      request<{ sessions: SessionSummary[] }>(`/api/users/${userId}/sessions`),
+    getState: (sessionId: string) =>
+      request<SessionState>(`/api/sessions/${sessionId}/state`),
   },
 
   users: {
-    /** Persist full requirements to MongoDB (user_requirements collection). */
     updateRequirements: (userId: string, body: Record<string, unknown>) =>
       request<Record<string, unknown>>(`/api/users/${userId}/requirements`, {
         method: "PUT",

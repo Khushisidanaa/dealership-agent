@@ -1,0 +1,72 @@
+Agent: Hi there! I'm calling about the 2023 Tesla Model S Plaid Hatchback you have listed at Ev Auto Lehi. Is that one still available?
+
+User: Yes.
+
+Agent: Awesome!
+
+Agent: How's the condition on that one?
+
+Agent: Has it been in any accidents or had any major repairs?
+
+User: It's good. No accidents.
+
+Agent: That's great to hear!
+
+Agent: How many previous owners has it had, and is it a clean title?
+
+User: It has one previous owner, and it's a total loss.
+
+Agent: Oh, a total loss, I see.
+
+Agent: Thanks for clarifying that.
+
+Agent: Just to check, are there any known issues I should be aware of, and when was the last service done?
+
+User: Yes.
+
+Agent: Got it.
+
+Agent: Could you tell me what the best out-the-door price is for that one, including tax and any fees?
+
+User: There are a couple of bins, and the last service was two months ago.
+
+Agent: Thanks for the info!
+
+Agent: Just to clarify, what's the best out-the-door price for the Tesla, and are there any dealer fees on top of the listed price?
+
+User: Twenty two thousand dollars and two hundred dollars dealer fees.
+
+Agent: Thanks for that!
+
+Agent: Do you guys offer financing?
+
+Agent: What kind of rates are you seeing right now?
+
+User: We offer financing at five percent.
+
+Agent: That's good to know!
+
+Agent: Is there a way for Alex to get pre-approved before coming in?
+
+User: No.
+
+Agent: Alright, thanks for the info!
+
+Agent: What are your hours for this weekend?
+
+Agent: Can I also schedule a test drive for Alex?
+
+User: Okay.
+
+Agent: Great!
+
+Agent: I’ll pass along that info to Alex so they can reach out to schedule a test drive.
+
+Agent: Thanks for all your help!
+
+Agent: Have a good one!
+
+User: By
+
+Agent: Thanks for your time!
+

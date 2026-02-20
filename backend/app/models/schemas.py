@@ -361,6 +361,7 @@ class CommunicationStatusOut(BaseModel):
     text_sent: bool = False
     call_made: bool = False
     response: Optional[str] = None
+    call_details: Optional[dict] = None
 
 
 class DashboardResponse(BaseModel):

@@ -204,5 +204,9 @@ async def get_search_results(session_id: str, search_id: str):
 @router.get("/cars")
 async def search_cars_in_area(session_id: str):
     """Direct search endpoint (alternative). Runs search and returns results."""
+    from app.models.documents import SessionDocument
     vehicles, price_stats, _ = await _run_search(session_id)
+    await SessionDocument.find_one(
+        SessionDocument.session_id == session_id
+    ).update({"$set": {"phase": "results"}})
     return {"results": vehicles, "price_stats": price_stats}

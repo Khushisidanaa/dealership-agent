@@ -1,0 +1,6 @@
+Agent: Hi there! I'm calling about the 2019 TOYOTA TACOMA CRW CAB/SR/SR5/TRD CREW CAB you have listed at State Street Truck Stop. Is that one still available?
+
+User: I'm busy.
+
+User: Bye.
+

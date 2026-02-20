@@ -75,6 +75,7 @@ async def get_dashboard(session_id: str):
             text_sent=c.comm_type == "text" and c.status == "sent",
             call_made=c.comm_type == "call" and c.status == "completed",
             response=c.summary,
+            call_details=c.call_details,
         )
         for c in comms
     ]

@@ -8,19 +8,46 @@ interface Step {
 interface StepIndicatorProps {
   steps: Step[];
   current: string;
+  completedPhases?: Set<string>;
+  onStepClick?: (key: string) => void;
 }
 
-export function StepIndicator({ steps, current }: StepIndicatorProps) {
+export function StepIndicator({
+  steps,
+  current,
+  completedPhases,
+  onStepClick,
+}: StepIndicatorProps) {
   const currentIdx = steps.findIndex((s) => s.key === current);
 
   return (
     <div className="steps">
       {steps.map((step, i) => {
-        const isDone = i < currentIdx;
+        const isDone = completedPhases?.has(step.key) ?? i < currentIdx;
         const isActive = i === currentIdx;
-        const cls = isDone ? "step--done" : isActive ? "step--active" : "";
+        const isClickable = onStepClick && (isDone || isActive);
+        const cls = [
+          "step",
+          isDone ? "step--done" : isActive ? "step--active" : "",
+          isClickable ? "step--clickable" : "",
+        ]
+          .filter(Boolean)
+          .join(" ");
+
         return (
-          <div key={step.key} className={`step ${cls}`}>
+          <div
+            key={step.key}
+            className={cls}
+            onClick={() => isClickable && onStepClick?.(step.key)}
+            role={isClickable ? "button" : undefined}
+            tabIndex={isClickable ? 0 : undefined}
+            onKeyDown={(e) => {
+              if (isClickable && (e.key === "Enter" || e.key === " ")) {
+                e.preventDefault();
+                onStepClick?.(step.key);
+              }
+            }}
+          >
             <div className="step-dot">
               {isDone ? (
                 <svg

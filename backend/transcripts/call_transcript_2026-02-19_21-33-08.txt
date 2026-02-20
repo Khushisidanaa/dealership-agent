@@ -1,0 +1,30 @@
+Agent: Hi there! I'm calling about the 2019 TOYOTA TACOMA CRW CAB/SR/SR5/TRD CREW CAB you have listed at State Street Truck Stop. Is that one still available?
+
+User: I'm busy, but
+
+Agent: I totally understand!
+
+Agent: I just wanted to quickly check on the availability and the condition of the Tacoma.
+
+User: I'm busy.
+
+Agent: I completely get it!
+
+Agent: I'll keep it brief.
+
+Agent: Is the Toyota Tacoma still available, and how's its condition?
+
+User: I don't want to talk now.
+
+Agent: No problem at all!
+
+User: I don't want to talk now.
+
+Agent: I understand!
+
+Agent: If you change your mind or need anything later, feel free to reach out.
+
+Agent: Have a great day!
+
+User: Bye.
+

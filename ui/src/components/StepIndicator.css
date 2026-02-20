@@ -67,6 +67,26 @@
   background: var(--success);
 }
 
+.step--clickable {
+  cursor: pointer;
+}
+
+.step--clickable:hover .step-dot {
+  box-shadow: 0 0 0 3px rgba(232, 184, 74, 0.2);
+}
+
+.step--clickable:hover .step-label {
+  color: var(--accent);
+}
+
+.step--clickable:focus-visible {
+  outline: none;
+}
+
+.step--clickable:focus-visible .step-dot {
+  box-shadow: 0 0 0 3px var(--accent);
+}
+
 @media (max-width: 768px) {
   .step-label {
     display: none;

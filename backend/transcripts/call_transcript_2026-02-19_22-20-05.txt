@@ -1,0 +1,62 @@
+Agent: Hi there! I'm calling about the 2019 TOYOTA TACOMA CRW CAB/SR/SR5/TRD CREW CAB you have listed at State Street Truck Stop. Is that one still available?
+
+User: Yes.
+
+Agent: Awesome!
+
+Agent: How's the condition on that one?
+
+Agent: Has it been in any accidents or had any major repairs?
+
+User: Accident last year.
+
+Agent: Got it, thanks for that.
+
+Agent: How many previous owners has it had, and is it a clean title?
+
+User: Two previous owners. No clean title.
+
+Agent: Thanks for the info!
+
+Agent: Are there any known issues with the truck that I should be aware of?
+
+Agent: Also, when was the last service done?
+
+User: No. No issues. That was just three months ago.
+
+Agent: Great to hear there's nothing major!
+
+Agent: Switching gears a bit, what's the best out-the-door price on that Tacoma?
+
+Agent: Are there any dealer fees on top of the listed price?
+
+User: Twenty thousand dollars.
+
+Agent: Thanks for that!
+
+User: Two hundred thousand dollar dealer fees.
+
+Agent: Oh, wow, that's quite a bit!
+
+Agent: Are there any promotions or incentives running right now that could help with the price?
+
+Agent: Also, do you guys offer financing?
+
+Agent: What kind of rates are you seeing right now?
+
+User: No financing.
+
+Agent: Got it, thanks for clarifying!
+
+Agent: What are your hours for this week?
+
+Agent: And can I schedule a test drive for this weekend?
+
+User: Yeah. Okay. Good.
+
+Agent: Great!
+
+Agent: I’ll make sure Alex knows to reach out about scheduling that test drive.
+
+User: Bye.
+

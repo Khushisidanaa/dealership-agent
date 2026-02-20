@@ -8,6 +8,7 @@ interface RecommendationsViewProps {
   onStartCalling: (vehicles: VehicleResult[]) => void;
   onBack: () => void;
   onChangeRequirements?: () => void;
+  refreshKey?: number;
 }
 
 const PLACEHOLDER_IMG =
@@ -20,6 +21,7 @@ export function RecommendationsView({
   onStartCalling,
   onBack,
   onChangeRequirements,
+  refreshKey = 0,
 }: RecommendationsViewProps) {
   const [vehicles, setVehicles] = useState<VehicleResult[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,7 +52,7 @@ export function RecommendationsView({
 
   useEffect(() => {
     fetchResults();
-  }, [fetchResults]);
+  }, [fetchResults, refreshKey]);
 
   const toggleSelect = (id: string) => {
     setSelected((prev) => {
@@ -76,7 +78,9 @@ export function RecommendationsView({
       if (vehicle_ids.length === 0) return;
       const idSet = new Set(vehicle_ids);
       const byId = new Map(vehicles.map((v) => [v.vehicle_id, v]));
-      const picked = vehicle_ids.map((id) => byId.get(id)).filter(Boolean) as VehicleResult[];
+      const picked = vehicle_ids
+        .map((id) => byId.get(id))
+        .filter(Boolean) as VehicleResult[];
       const rest = vehicles.filter((v) => !idSet.has(v.vehicle_id));
       setVehicles([...picked, ...rest]);
       setSelected(new Set(vehicle_ids));

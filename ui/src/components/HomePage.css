@@ -1,0 +1,212 @@
+.home-page {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem 4rem;
+  animation: home-fadein 0.35s ease-out;
+}
+
+@keyframes home-fadein {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.home-hero {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.home-hero h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 0.5rem;
+}
+
+.home-hero p {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  margin: 0 0 1.5rem;
+}
+
+.home-new-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 2rem;
+  background: var(--accent);
+  color: var(--bg-primary);
+  border: none;
+  border-radius: var(--radius);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    transform 0.1s;
+}
+
+.home-new-btn:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+.home-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 2rem;
+  color: var(--text-muted);
+}
+
+.home-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.home-sessions h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0 0 1rem;
+}
+
+.home-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.home-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s,
+    transform 0.1s;
+  position: relative;
+  font-family: inherit;
+  color: inherit;
+}
+
+.home-card:hover {
+  border-color: var(--accent-dim);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.home-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.home-card-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.home-card-time {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.home-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.home-phase-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+}
+
+.home-phase--dashboard {
+  background: rgba(74, 222, 128, 0.12);
+  color: var(--success);
+}
+
+.home-phase--calling {
+  background: rgba(232, 184, 74, 0.12);
+  color: var(--accent);
+}
+
+.home-phase--results {
+  background: rgba(99, 179, 237, 0.12);
+  color: #63b3ed;
+}
+
+.home-card-stat {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.home-card-stat--call {
+  color: var(--success);
+}
+
+.home-card-arrow {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.home-card:hover .home-card-arrow {
+  opacity: 1;
+}
+
+.home-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-muted);
+}
+
+@media (max-width: 600px) {
+  .home-page {
+    padding: 2rem 1rem 3rem;
+  }
+  .home-hero h1 {
+    font-size: 1.4rem;
+  }
+  .home-grid {
+    grid-template-columns: 1fr;
+  }
+}

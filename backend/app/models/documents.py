@@ -35,14 +35,11 @@ class SessionDocument(Document):
     session_id: str = Field(default_factory=new_uuid)
     created_at: datetime = Field(default_factory=utc_now)
     status: str = Field(default="created")
+    phase: str = Field(default="chat")
 
-    # User linked to this session (created when session is created)
     user_id: Optional[str] = None
 
-    # Static preferences (kept in sync with user_requirements for backward compat)
     preferences: Optional[dict] = None
-
-    # Additional filters from conversational agent
     additional_filters: Optional[dict] = None
 
     class Settings:
@@ -51,6 +48,7 @@ class SessionDocument(Document):
             "session_id",
             "user_id",
             [("created_at", pymongo.DESCENDING)],
+            [("user_id", pymongo.ASCENDING), ("created_at", pymongo.DESCENDING)],
         ]
 
 
@@ -107,6 +105,7 @@ class CommunicationDocument(Document):
     message_body: Optional[str] = None
     transcript: list[dict] = Field(default_factory=list)
     summary: Optional[str] = None
+    call_details: Optional[dict] = None
     duration_seconds: Optional[int] = None
     recording_url: Optional[str] = None
     created_at: datetime = Field(default_factory=utc_now)
