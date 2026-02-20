@@ -22,6 +22,7 @@ from app.api import (
     users,
     voice,
     analyze,
+    recommendations,
 )
 
 
@@ -58,6 +59,7 @@ app.include_router(test_drive.router)
 app.include_router(users.router)
 app.include_router(voice.router)
 app.include_router(analyze.router)
+app.include_router(recommendations.router)
 
 
 @app.get("/health")

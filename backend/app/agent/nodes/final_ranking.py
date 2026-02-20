@@ -9,6 +9,7 @@ from langchain_openai import ChatOpenAI
 
 from app.agent.state import AgentState
 from app.config import get_settings
+from app.utils import parse_json_from_llm
 
 
 RANKING_PROMPT = """\
@@ -107,13 +108,12 @@ def _llm_ranking(
         model=settings.openai_model,
         api_key=settings.openai_api_key,
         temperature=0.2,
-        model_kwargs={"response_format": {"type": "json_object"}},
     )
 
     response = llm.invoke([SystemMessage(content=system_text)])
 
     try:
-        parsed = json.loads(response.content)
+        parsed = parse_json_from_llm(response.content)
         top3_data = parsed.get("final_top3", [])
         top3_ids = [entry["vehicle_id"] for entry in top3_data[:3]]
     except (json.JSONDecodeError, KeyError):

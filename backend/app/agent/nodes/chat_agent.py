@@ -8,6 +8,7 @@ from langchain_openai import ChatOpenAI
 from app.agent.state import AgentState
 from app.agent.prompts.chat_system import CHAT_SYSTEM_PROMPT
 from app.config import get_settings
+from app.utils import parse_json_from_llm
 
 
 def chat_agent(state: AgentState) -> dict:
@@ -32,7 +33,6 @@ def chat_agent(state: AgentState) -> dict:
         model=settings.openai_model,
         api_key=settings.openai_api_key,
         temperature=0.7,
-        model_kwargs={"response_format": {"type": "json_object"}},
     )
 
     conversation = [SystemMessage(content=system_text)] + list(state.get("messages", []))
@@ -41,8 +41,8 @@ def chat_agent(state: AgentState) -> dict:
     raw_content = response.content
 
     try:
-        parsed = json.loads(raw_content)
-    except json.JSONDecodeError:
+        parsed = parse_json_from_llm(raw_content)
+    except (json.JSONDecodeError, ValueError):
         parsed = {
             "reply": raw_content,
             "updated_filters": None,

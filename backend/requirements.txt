@@ -1,3 +1,6 @@
+# Install from project root: pip install -r backend/requirements.txt
+# If your pip uses a private index missing some packages (e.g. beanie, bcrypt), use:
+#   pip install --index-url https://pypi.org/simple -r backend/requirements.txt
 fastapi>=0.115.0
 uvicorn[standard]>=0.34.0
 python-multipart>=0.0.9
@@ -9,6 +12,9 @@ pydantic-settings>=2.7.0
 python-dotenv>=1.0.1
 httpx>=0.28.0
 openai>=1.59.0
+langchain-openai>=0.3.0
+langchain-core>=0.3.0
+langgraph>=0.2.0
 twilio>=9.4.0
 deepgram-sdk>=3.9.0
 websockets>=14.1

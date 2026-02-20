@@ -25,6 +25,7 @@ export function RecommendationsView({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [aiPicking, setAiPicking] = useState(false);
 
   const fetchResults = useCallback(async () => {
     setLoading(true);
@@ -65,6 +66,25 @@ export function RecommendationsView({
       .slice(0, Math.min(2, vehicles.length))
       .map((v) => v.vehicle_id);
     setSelected(new Set(topIds));
+  };
+
+  const handleAiPickBestTwo = async () => {
+    setAiPicking(true);
+    setError(null);
+    try {
+      const { vehicle_ids } = await api.recommendations.pickBestTwo(sessionId);
+      if (vehicle_ids.length === 0) return;
+      const idSet = new Set(vehicle_ids);
+      const byId = new Map(vehicles.map((v) => [v.vehicle_id, v]));
+      const picked = vehicle_ids.map((id) => byId.get(id)).filter(Boolean) as VehicleResult[];
+      const rest = vehicles.filter((v) => !idSet.has(v.vehicle_id));
+      setVehicles([...picked, ...rest]);
+      setSelected(new Set(vehicle_ids));
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "AI pick failed");
+    } finally {
+      setAiPicking(false);
+    }
   };
 
   const handleCall = () => {
@@ -138,6 +158,15 @@ export function RecommendationsView({
               Change requirements
             </button>
           )}
+          <button
+            type="button"
+            className="rv-btn rv-btn--ghost"
+            onClick={handleAiPickBestTwo}
+            disabled={aiPicking || vehicles.length < 2}
+            title="Use AI to pick the best 2 cars from your requirements and chat"
+          >
+            {aiPicking ? "Picking…" : "AI picks best 2"}
+          </button>
           <button
             type="button"
             className="rv-btn rv-btn--ghost"

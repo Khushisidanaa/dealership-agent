@@ -104,12 +104,13 @@ async def _summarize_transcript(vehicle: dict, transcript_text: str) -> dict:
         model=settings.openai_model,
         api_key=settings.openai_api_key,
         temperature=0.1,
-        model_kwargs={"response_format": {"type": "json_object"}},
     )
 
     try:
+        from app.utils import parse_json_from_llm
+
         response = llm.invoke([SystemMessage(content=prompt_text)])
-        return json.loads(response.content)
+        return parse_json_from_llm(response.content)
     except Exception as exc:
         log.warning("LLM summary failed for %s: %s -- falling back to basic parse", vehicle.get("vehicle_id"), exc)
         return _basic_parse(vehicle, transcript_text)

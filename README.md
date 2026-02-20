@@ -24,10 +24,10 @@ source venv/bin/activate   # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-If `pip` is configured to use a private index (e.g. Artifactory) and the install fails, install from the public PyPI instead:
+If `pip` is configured to use a private index (e.g. Artifactory) and the install fails (e.g. `No matching distribution found for beanie`), install from the public PyPI instead:
 
 ```bash
-pip install -r requirements.txt --index-url https://pypi.org/simple/
+pip install --index-url https://pypi.org/simple -r requirements.txt
 ```
 
 Copy `.env.example` to `.env` and fill in your API keys.
@@ -35,7 +35,7 @@ Copy `.env.example` to `.env` and fill in your API keys.
 ### Frontend
 
 ```bash
-cd frontend
+cd ui
 npm install
 ```
 
@@ -60,7 +60,7 @@ uvicorn app.main:app --reload --port 8000
 ### 3. Frontend
 
 ```bash
-cd frontend
+cd ui
 npm install
 npm run dev
 ```
@@ -107,7 +107,7 @@ dealership-agent/
         schemas.py         # Pydantic request/response models
         database.py        # MongoDB connection
     requirements.txt
-  frontend/
+  ui/
     src/
       components/          # React components
       services/            # API client + WebSocket

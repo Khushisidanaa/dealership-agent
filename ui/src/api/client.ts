@@ -142,6 +142,15 @@ export const api = {
       ),
   },
 
+  recommendations: {
+    /** AI picks the best 2 cars using requirements + chat history + found cars. */
+    pickBestTwo: (sessionId: string) =>
+      request<{ vehicle_ids: string[] }>(
+        `/api/sessions/${sessionId}/recommendations/pick-best-two`,
+        { method: "POST" },
+      ),
+  },
+
   shortlist: {
     create: (sessionId: string, vehicleIds: string[], autoSelect = false) =>
       request<{

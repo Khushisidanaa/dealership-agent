@@ -80,8 +80,9 @@ def _llm_summarize(calls: list[dict], settings) -> list[dict]:
         model=settings.openai_model,
         api_key=settings.openai_api_key,
         temperature=0.1,
-        model_kwargs={"response_format": {"type": "json_object"}},
     )
+
+    from app.utils import parse_json_from_llm
 
     summaries = []
     for call in calls:
@@ -94,8 +95,8 @@ def _llm_summarize(calls: list[dict], settings) -> list[dict]:
 
         try:
             response = llm.invoke([SystemMessage(content=prompt_text)])
-            parsed = json.loads(response.content)
-        except (json.JSONDecodeError, Exception) as exc:
+            parsed = parse_json_from_llm(response.content)
+        except (json.JSONDecodeError, ValueError, Exception) as exc:
             log.warning("Failed to parse summary for %s: %s", call.get("vehicle_id"), exc)
             parsed = {**_EMPTY_SUMMARY, "key_takeaways": "Summary extraction failed."}
 
