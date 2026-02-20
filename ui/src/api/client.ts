@@ -18,6 +18,8 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+const SSE_BASE = "http://127.0.0.1:8000";
+
 export function analyzeVehicles(
   sessionId: string,
   onEvent: (eventType: string, data: Record<string, unknown>) => void,
@@ -25,7 +27,7 @@ export function analyzeVehicles(
   const controller = new AbortController();
 
   const run = async () => {
-    const resp = await fetch(`${API_BASE}/api/sessions/${sessionId}/analyze`, {
+    const resp = await fetch(`${SSE_BASE}/api/sessions/${sessionId}/analyze`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       signal: controller.signal,
@@ -39,6 +41,7 @@ export function analyzeVehicles(
     const reader = resp.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
+    let currentEvent = "";
 
     for (;;) {
       const { done, value } = await reader.read();
@@ -48,7 +51,6 @@ export function analyzeVehicles(
       const lines = buffer.split("\n");
       buffer = lines.pop() || "";
 
-      let currentEvent = "";
       for (const line of lines) {
         if (line.startsWith("event: ")) {
           currentEvent = line.slice(7).trim();

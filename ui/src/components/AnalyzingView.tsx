@@ -53,7 +53,6 @@ export function AnalyzingView({
     null,
   );
   const cancelRef = useRef<(() => void) | null>(null);
-  const startedRef = useRef(false);
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
 
@@ -67,8 +66,9 @@ export function AnalyzingView({
   );
 
   useEffect(() => {
-    if (startedRef.current) return;
-    startedRef.current = true;
+    setDealers([]);
+    setPhase("calling");
+    setOverallMessage("Preparing to call dealers...");
 
     const { cancel } = analyzeVehicles(sessionId, (eventType, data) => {
       switch (eventType) {
