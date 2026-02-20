@@ -201,6 +201,15 @@ export const api = {
       request<import("../types").DashboardResponse>(
         `/api/sessions/${sessionId}/dashboard`,
       ),
+    exportPdf: async (sessionId: string): Promise<Blob> => {
+      const res = await fetch(`${API_BASE}/api/sessions/${sessionId}/export-pdf`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: res.statusText }));
+        const detail = (err as { detail?: string }).detail ?? res.statusText;
+        throw new Error(typeof detail === "string" ? detail : String(detail));
+      }
+      return res.blob();
+    },
   },
 
   listings: {
