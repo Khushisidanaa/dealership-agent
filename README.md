@@ -1,205 +1,173 @@
 # Dealership Agent
 
-AI-powered car dealership finder that scrapes listings, compares prices, and autonomously calls/texts dealerships on your behalf.
-
-## Tech Stack
-
-- **Frontend**: React (Vite) + TypeScript
-- **Backend**: Python + FastAPI + WebSockets
-- **Database**: MongoDB (Motor + Beanie ODM)
-- **AI**: OpenAI GPT-4
-- **Voice**: Twilio + Deepgram Voice Agent API
-- **Dashboard**: KendoReact (Progress Software) -- to be integrated
-
-## Dependency installation
-
-### Backend (Python)
-
-Use a virtual environment so dependencies stay isolated:
-
-```bash
-cd backend
-python3 -m venv venv
-source venv/bin/activate   # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-If `pip` is configured to use a private index (e.g. Artifactory) and the install fails (e.g. `No matching distribution found for beanie`), install from the public PyPI instead:
-
-```bash
-pip install --index-url https://pypi.org/simple -r requirements.txt
-```
-
-Copy `.env.example` to `.env` and fill in your API keys.
-
-### Frontend
-
-```bash
-cd ui
-npm install
-```
+**AI-powered car-shopping assistant** — finds listings, calls and texts dealerships on your behalf, analyzes conversations, and recommends the best matches. Get a PDF report with tips for in-person visits and test drives.
 
 ---
 
-## Quick Start
+## Try it now
 
-### 1. Start MongoDB
+**Live demo (hosted on Linode):** [https://tinyurl.com/yd53t4w4](https://tinyurl.com/yd53t4w4)
 
-```bash
-docker compose up -d
-```
+Scan to open on your phone:
 
-### 2. Backend
-
-```bash
-cd backend
-source venv/bin/activate   # if you haven’t created/activated venv yet, see Dependency installation
-uvicorn app.main:app --reload --port 8000
-```
-
-### 3. Frontend
-
-```bash
-cd ui
-npm install
-npm run dev
-```
-
-Open http://localhost:5173 in your browser.
-
-## API: User vs Session
-
-- **User-based (no session required)**  
-  Use `user_id` (e.g. from your auth after login). Handles requirements, dealers, and car search without creating a session:
-  - `GET/POST/PUT/DELETE /api/users/{user_id}/requirements`
-  - `GET /api/users/{user_id}/dealers?q=...` (filter by dealer name or address)
-  - `GET /api/users/{user_id}/search/cars`
-- **Session-based**  
-  Create a session and use `session_id` for the conversational flow: preferences, chat, search, dashboard, communication, test-drive. Use this when you have a session (e.g. after login).
-
-Authentication is handled elsewhere; this API uses `user_id` or `session_id` as provided.
-
-## Project Structure
-
-```
-dealership-agent/
-  backend/
-    app/
-      main.py              # FastAPI app entry point
-      config.py            # Environment / settings
-      api/                 # Route handlers
-        sessions.py
-        preferences.py
-        chat.py
-        search.py
-        dashboard.py
-        communication.py
-        voice.py         # Standalone voice call API (POST /api/voice/call)
-        test_drive.py
-      services/            # Business logic
-        llm_service.py     # OpenAI chat agent
-        scraper_service.py # Web scraper (pluggable)
-        twilio_service.py  # SMS via Twilio
-        deepgram_service.py# Voice calls via Deepgram
-        scoring_service.py # Vehicle ranking
-      models/
-        documents.py       # Beanie ODM documents (MongoDB)
-        schemas.py         # Pydantic request/response models
-        database.py        # MongoDB connection
-    requirements.txt
-  ui/
-    src/
-      components/          # React components
-      services/            # API client + WebSocket
-      types/               # TypeScript interfaces
-      App.tsx              # Main app with step-based flow
-  docker-compose.yml       # MongoDB container
-```
-
-## API Endpoints
-
-| Method | Path                                        | Description          |
-| ------ | ------------------------------------------- | -------------------- |
-| POST   | /api/sessions                               | Create session       |
-| POST   | /api/sessions/{id}/preferences              | Submit questionnaire |
-| POST   | /api/sessions/{id}/chat                     | Chat with AI agent   |
-| GET    | /api/sessions/{id}/chat/history             | Get chat history     |
-| POST   | /api/sessions/{id}/search                   | Trigger web scraping |
-| GET    | /api/sessions/{id}/search/{sid}/status      | Poll search progress |
-| GET    | /api/sessions/{id}/search/{sid}/results     | Get results          |
-| POST   | /api/sessions/{id}/shortlist                | Shortlist vehicles   |
-| GET    | /api/sessions/{id}/dashboard                | Dashboard data       |
-| POST   | /api/sessions/{id}/communication/text       | Send SMS             |
-| POST   | /api/sessions/{id}/communication/call       | Start AI voice call (session-based) |
-| POST   | /api/voice/call                             | Start AI voice call (standalone, all params) |
-| GET    | /api/sessions/{id}/communication/call/{cid} | Call status          |
-| POST   | /api/sessions/{id}/test-drive               | Book test drive      |
-| GET    | /api/sessions/{id}/test-drive/{bid}         | Booking status       |
-| WS     | /ws/sessions/{id}                           | Real-time updates    |
-
-## Environment Variables
-
-Copy `.env.example` to `backend/.env` and fill in:
-
-- `OPENAI_API_KEY` -- for the conversational agent
-- `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER` -- for SMS/calls
-- `DEEPGRAM_API_KEY` -- for voice agent STT/TTS
-- `SERVER_BASE_URL` -- **required for voice**: public URL of this backend (e.g. `https://your-ngrok-url.ngrok-free.app`) so Twilio can reach the TwiML and WebSocket
+![QR code to live deployment](assets/qr-deployment.png)
 
 ---
 
-## Voice calls (Twilio + Deepgram)
+## What it does
 
-The agent can place **outbound** calls to dealers and hold a conversation using context you pass (e.g. car, budget, availability).
+- **Guided flow** — Enter preferences (make, model, budget, location). The agent suggests vehicles and runs real inventory search.
+- **Voice & SMS** — Places outbound calls to dealers and sends texts using your context (car, budget, availability).
+- **Call analysis** — Summarizes dealer conversations and ranks vehicles so you see the best options.
+- **Recommendations** — Picks top vehicles and surfaces requirements that matter for your search.
+- **PDF reports** — Generates a report with extra details to keep in mind for in-person visits and test drives. Can also analyze Carfax (or other PDFs) provided by the dealership.
 
-### Standalone voice endpoint (POST /api/voice/call)
+---
 
-Pass in a **prompt** (context from your user conversation) and **start_message** (opening line). No session required.
+## Tech stack
 
-**How to run (all commands):**
+| Layer | Technology |
+|-------|------------|
+| **Voice (AI)** | [Deepgram](https://deepgram.com/) — STT/TTS for natural dealer calls |
+| **Calls & SMS** | [Twilio](https://www.twilio.com/) — outbound calls and texting |
+| **Analysis & chat** | **OpenAI GPT-4** — analyzes calls, texts, recommends cards, finds good requirements |
+| **PDFs & docs** | [Foxit](https://www.foxit.com/) — PDF generation for user-facing reports; document analysis for Carfax and other dealer-provided PDFs |
+| **Backend** | Python, FastAPI, WebSockets |
+| **Frontend** | React (Vite), TypeScript |
+| **Database** | MongoDB (Motor + Beanie ODM) |
 
-```bash
-# Terminal 1: MongoDB
-docker compose up -d
+---
 
-# Terminal 2: Backend
-cd backend && source venv/bin/activate && uvicorn app.main:app --reload --port 8000
-
-# Terminal 3: ngrok (expose backend for Twilio webhooks)
-ngrok http 8000
-```
-
-Set `SERVER_BASE_URL` in `backend/.env` to your ngrok URL (e.g. `https://xxx.ngrok-free.app`, no trailing slash). Restart uvicorn if you change it.
-
-```bash
-# Terminal 4 (or any): Start a call
-curl -X POST http://localhost:8000/api/voice/call \
-  -H "Content-Type: application/json" \
-  -d '{"to_number": "+15551234567", "prompt": "You are a friendly AI calling a dealership about a 2022 Honda Civic.", "start_message": "Hi, I am calling about the 2022 Honda Civic you have listed."}'
-```
-
-**Request body:**
-
-| Param           | Type   | Required | Description                                                        |
-|-----------------|--------|----------|--------------------------------------------------------------------|
-| `to_number`     | string | Yes      | E.164 phone number to call                                        |
-| `prompt`        | string | Yes      | Agent context/instructions (derived from your user conversation)  |
-| `start_message` | string | Yes      | Opening line the agent says when the call connects                |
-
-Response: `{ "call_id": "...", "status": "initiating", "to_number": "...", "twiml_url": "..." }`
+## Run locally
 
 ### Prerequisites
 
-1. **Twilio**
-   - Account, phone number, and credentials in `.env`.
-   - Twilio will **call your backend** when the outbound call is answered, so the server must be reachable from the internet.
+- **Python 3** (virtual env recommended)
+- **Node.js & npm**
+- **MongoDB** — use Docker for local, or point to your own deployment
 
-2. **Deepgram**
-   - API key (voice agent uses Deepgram for STT/TTS and can use OpenAI for “think” via their managed config).
-   - [Deepgram + Twilio guide](https://developers.deepgram.com/docs/twilio-and-deepgram-voice-agent).
+### 1. Get API keys
 
-3. **Public URL for the backend**
-   - Set `SERVER_BASE_URL` in `.env` to the public URL (e.g. `https://abc123.ngrok-free.app`).
-   - For local dev, use a tunnel (see below).
+Ask the devs for the `.env` variables. Copy them into `backend/.env` (you can start from `backend/.env.example`). You’ll need keys for OpenAI, Twilio, Deepgram, and optionally Foxit.
 
+### 2. One-time setup
 
+```bash
+# Backend (use a virtual env)
+cd backend
+python3 -m venv venv
+source venv/bin/activate   # Windows: venv\Scripts\activate
+pip install --index-url https://pypi.org/simple/ -r requirements.txt
+
+# Frontend
+cd ../ui
+npm install
+```
+
+### 3. MongoDB
+
+**Option A — Docker (local):**
+
+```bash
+make mongo-local
+```
+
+**Option B — Your own Mongo:**  
+Set `MONGODB_URI` in `backend/.env` to your deployment.
+
+### 4. Run the app
+
+From the **project root**:
+
+```bash
+make deploy      # install deps + build UI (once)
+make deploy-run  # start backend + frontend
+```
+
+- **Frontend:** http://localhost:5173  
+- **Backend (API + docs):** http://localhost:8000  
+
+For API-only local testing: `make mongo-local` then `make run` (backend on port 8000, Mongo on localhost:27017).
+
+---
+
+## API overview
+
+| Method | Path | Description |
+|--------|------|-------------|
+| **Auth** | | |
+| POST | `/api/auth/signup` | Register |
+| POST | `/api/auth/login` | Login |
+| **Sessions** | | |
+| POST | `/api/sessions` | Create session |
+| GET | `/api/users/{user_id}/sessions` | List user sessions |
+| GET | `/api/sessions/{session_id}/state` | Session state |
+| **Agent (orchestrated flow)** | | |
+| POST | `/api/agent/start` | Start session + preferences + first message |
+| POST | `/api/agent/{session_id}/chat` | Chat |
+| POST | `/api/agent/{session_id}/search` | Trigger search |
+| POST | `/api/agent/{session_id}/confirm` | Confirm shortlist |
+| POST | `/api/agent/{session_id}/testdrive` | Book test drive |
+| GET | `/api/agent/{session_id}/state` | Agent state |
+| **Preferences & chat** | | |
+| POST | `/api/sessions/{session_id}/preferences` | Submit preferences |
+| POST | `/api/sessions/{session_id}/chat` | Chat message |
+| GET | `/api/sessions/{session_id}/chat/history` | Chat history |
+| **Search & listings** | | |
+| POST | `/api/sessions/{session_id}/search` | Trigger search |
+| GET | `/api/sessions/{session_id}/search/{search_id}/status` | Search status |
+| GET | `/api/sessions/{session_id}/search/{search_id}/results` | Search results |
+| GET | `/api/sessions/{session_id}/search/cars` | Cars list |
+| GET | `/api/listings/by-session/{session_id}` | Listings by session |
+| POST | `/api/listings/search` | Listings search |
+| **Dashboard** | | |
+| POST | `/api/sessions/{session_id}/shortlist` | Shortlist vehicles |
+| GET | `/api/sessions/{session_id}/dashboard` | Dashboard data |
+| GET | `/api/sessions/{session_id}/export-pdf` | Export dashboard PDF (Foxit) |
+| **Analyze & recommendations** | | |
+| POST | `/api/sessions/{session_id}/analyze` | Call dealers, summarize, rank (SSE) |
+| POST | `/api/sessions/{session_id}/recommendations/pick-best-two` | Pick best two |
+| **Test drive** | | |
+| POST | `/api/sessions/{session_id}/test-drive` | Create booking |
+| POST | `/api/sessions/{session_id}/test-drive/call` | Trigger call |
+| GET | `/api/sessions/{session_id}/test-drive/{booking_id}` | Booking status |
+| **Voice (standalone)** | | |
+| POST | `/api/voice/call` | Start outbound AI voice call |
+| GET | `/api/voice/call/{call_id}` | Call status |
+| **Users** | | |
+| PUT | `/api/users/{user_id}/requirements` | Update user requirements |
+| **Health** | | |
+| GET | `/health` | Health check |
+
+---
+
+## Makefile commands
+
+| Command | Description |
+|---------|-------------|
+| `make help` | List all targets |
+| `make mongo-local` | Start MongoDB on localhost:27017 |
+| `make mongo` | Start MongoDB via docker compose (internal) |
+| `make install` | Install backend deps (public PyPI) |
+| `make run` | Start FastAPI on port 8000 (needs Mongo on 27017) |
+| `make build-ui` | Build React UI to `ui/dist` |
+| `make deploy` | Install backend deps + build UI |
+| `make deploy-run` | Run backend + frontend (0.0.0.0 for local/Linode) |
+| `make stop` | Stop Docker stack |
+
+---
+
+## Environment variables (summary)
+
+In `backend/.env` (get values from devs or `.env.example`):
+
+- **OpenAI** — `OPENAI_API_KEY`
+- **Twilio** — `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`
+- **Deepgram** — `DEEPGRAM_API_KEY`
+- **Foxit** — `FOXIT_CLIENT_ID`, `FOXIT_CLIENT_SECRET`, `FOXIT_API_HOST` (optional)
+- **Server** — `SERVER_BASE_URL` (public backend URL for Twilio webhooks; e.g. ngrok for local)
+- **MongoDB** — `MONGODB_URI` (optional; default/local uses Docker)
+
+---
+
+*Built for the hackathon — happy judging.*
