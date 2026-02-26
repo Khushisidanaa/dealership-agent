@@ -299,7 +299,22 @@ async def _handle_twilio_voice(websocket: WebSocket, call_id: str):
             recv_task = asyncio.create_task(twilio_receiver())
             sender_task = asyncio.create_task(sts_sender(dg_ws))
             receiver_task = asyncio.create_task(sts_receiver(dg_ws))
-            await asyncio.gather(recv_task, receiver_task)
+
+            # Wait for Twilio stream to end first; then force a clean shutdown.
+            await recv_task
+            end_requested.set()
+            await audio_queue.put(None)
+
+            # Give Deepgram receiver a short grace period to flush final messages.
+            try:
+                await asyncio.wait_for(receiver_task, timeout=2.0)
+            except (asyncio.TimeoutError, asyncio.CancelledError):
+                receiver_task.cancel()
+                try:
+                    await receiver_task
+                except asyncio.CancelledError:
+                    pass
+
             sender_task.cancel()
             try:
                 await sender_task
