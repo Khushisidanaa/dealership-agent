@@ -97,7 +97,7 @@ def _limit_per_dealer(vehicles: list[dict], max_per_dealer: int = MAX_PER_DEALER
 
 
 async def _run_search(session_id: str) -> tuple[list[dict], dict | None, str]:
-    """Search for vehicles (Nova Act or MarketCheck) matching session preferences."""
+    """Search for vehicles (Nova Act or MarketCheck) matching session preferences. Results are always stored in MongoDB (search_results collection)."""
     session = await get_session_or_404(session_id)
     prefs = session.preferences or {}
     extra = session.additional_filters or {}
@@ -186,6 +186,27 @@ async def get_search_status(session_id: str, search_id: str):
     )
 
 
+@router.get("/latest")
+async def get_latest_search_results(session_id: str):
+    """Return the latest persisted search results for this session (no new search). Used by Recommendations to load from MongoDB."""
+    docs = (
+        await SearchResultDocument.find(
+            SearchResultDocument.session_id == session_id,
+            SearchResultDocument.status == "completed",
+        )
+        .sort("-created_at")
+        .limit(1)
+        .to_list()
+    )
+    if not docs:
+        return {"results": [], "price_stats": None}
+    search_doc = docs[0]
+    return {
+        "results": search_doc.vehicles or [],
+        "price_stats": search_doc.price_stats,
+    }
+
+
 @router.get("/{search_id}/results")
 async def get_search_results(session_id: str, search_id: str):
     """Get search results."""
@@ -199,6 +220,42 @@ async def get_search_results(session_id: str, search_id: str):
         "results": search_doc.vehicles or [],
         "price_stats": search_doc.price_stats,
     }
+
+
+async def persist_search_results(
+    session_id: str,
+    results: list,
+    price_stats_obj=None,
+) -> str:
+    """
+    Save search results (Nova Act or MarketCheck) to MongoDB.
+    Accepts list of VehicleListingResult; flattens and upserts into SearchResultDocument.
+    Returns the search document id.
+    """
+    vehicles = [_flatten_listing(r, i + 1) for i, r in enumerate(results)]
+    vehicles = _limit_per_dealer(vehicles)
+    for i, v in enumerate(vehicles):
+        v["rank"] = i + 1
+    price_stats = price_stats_obj.model_dump() if price_stats_obj and hasattr(price_stats_obj, "model_dump") else price_stats_obj
+
+    search_doc = await SearchResultDocument.find_one(
+        SearchResultDocument.session_id == session_id,
+        SearchResultDocument.status == "completed",
+    )
+    if search_doc:
+        search_doc.vehicles = vehicles
+        search_doc.price_stats = price_stats
+        await search_doc.save()
+    else:
+        search_doc = SearchResultDocument(
+            session_id=session_id,
+            status="completed",
+            progress_percent=100,
+            vehicles=vehicles,
+            price_stats=price_stats,
+        )
+        await search_doc.insert()
+    return str(search_doc.id)
 
 
 @router.get("/cars")

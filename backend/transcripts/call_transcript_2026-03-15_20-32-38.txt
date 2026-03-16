@@ -1,0 +1,28 @@
+User: hello
+
+Agent: Hi there! I'm calling about the 2017 Toyota Prius Two you have listed at Sandy Toyota.
+
+Agent: Is that one still available?  And if it is, could you tell me a bit about the condition of the car?
+
+Agent: Hi there! I'm calling about the 2017 Toyota Prius Two you have listed at Sandy Toyota.
+
+Agent: Is that one still available?  And if it is, could you tell me a bit about the condition of the car?
+
+User: um
+
+Agent: No worries, take your time. Is the 2017 Toyota Prius Two still on the lot and available for sale?
+
+Agent: No worries, take your time. Is the 2017 Toyota Prius Two still on the lot and available for sale?
+
+User: sorry that car is not available
+
+Agent: No problem at all. Do you have any similar models in that price range that are still available?
+
+Agent: No problem at all. Do you have any similar models in that price range that are still available?
+
+User: not really goodbye
+
+Agent: Thanks for your time. Goodbye!
+
+Agent: Thanks for your time. Goodbye!
+

@@ -9,3 +9,5 @@ venv/
 .DS_Store
 mongo_data/
 .certs/
+backend/completed_calls/
+backend/test-collected-data/

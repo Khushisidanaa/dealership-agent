@@ -49,6 +49,12 @@ async def search_listings(
     use_nova = provider == "nova_act"
 
     if use_nova and has_nova_act_configured():
+        log.info(
+            "Car search: provider=nova_act — invoking Nova Act (real cars.com data when API key set). make=%s model=%s zip=%s",
+            make,
+            model,
+            zip_code,
+        )
         # Cap rows for Nova to reduce API usage
         nova_rows = min(rows, 10)
         try:

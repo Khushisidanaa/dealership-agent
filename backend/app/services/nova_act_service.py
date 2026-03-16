@@ -1,14 +1,14 @@
 """
-Nova Act / Bedrock car search service.
+Nova Act car search service (real data only).
 
-Uses AWS Nova Act (workflow run) when a workflow is deployed, or Bedrock Converse
-(DeepSeek) to generate listings. Supports Nova Act API key (AWS_NOVA_HACKATHON_API_KEY)
-from nova.amazon.com/dev for hackathon/development; key is exposed as NOVA_ACT_API_KEY
-for SDK/tooling. Includes in-memory cache (30 min TTL) to stay within rate limits.
+Uses (1) Nova Act SDK browser (cars.com) when API key is set, or (2) Nova Act
+workflow when deployed (S3 results). No synthetic/hallucinated listings.
+Supports Nova Act API key (AWS_NOVA_HACKATHON_API_KEY or NOVA_ACT_API_KEY) from
+nova.amazon.com/dev. Includes in-memory cache (30 min TTL) for rate limits.
 
 Requests per search (uncached):
-- Bedrock path (no workflow): 1 Converse API call.
-- Workflow path: 1 create_workflow_run + N get_workflow_run (poll ~5s until done, max ~24) + 1 S3 list + 0–1 S3 get.
+- Browser path: cars.com URL, N listing page loads, parse HTML to VehicleListingResult.
+- Workflow path: create_workflow_run + poll + S3.
 Cache hits: 0 external requests.
 """
 
@@ -16,7 +16,6 @@ import asyncio
 import json
 import logging
 import os
-import re
 import time
 import urllib.parse
 from typing import Any, Dict, List, Optional, Tuple
@@ -29,6 +28,8 @@ from app.models.schemas import (
     PriceStats,
     VehicleListingResult,
 )
+from app.services.cars_com_parser import parse_cars_com_listing_html
+from app.services.cars_com_url import build_cars_com_search_url
 
 logger = logging.getLogger(__name__)
 
@@ -76,8 +77,11 @@ def _get_aws_credentials() -> Tuple[str, str]:
 
 
 def _get_nova_act_api_key() -> str:
-    """Nova Act API key (hackathon); never log this value."""
-    return (get_settings().aws_nova_hackathon_api_key or "").strip()
+    """Nova Act API key (hackathon); never log this value. Reads config or env NOVA_ACT_API_KEY."""
+    key = (get_settings().aws_nova_hackathon_api_key or "").strip()
+    if not key:
+        key = (os.environ.get("NOVA_ACT_API_KEY") or "").strip()
+    return key
 
 
 def has_nova_act_configured() -> bool:
@@ -93,98 +97,6 @@ def _ensure_nova_act_api_key_env() -> None:
     key = _get_nova_act_api_key()
     if key:
         os.environ["NOVA_ACT_API_KEY"] = key
-
-
-def _bedrock_listings_from_prompt(
-    zip_code: str,
-    make: str,
-    model: str,
-    year_min: Optional[int],
-    year_max: Optional[int],
-    price_max: Optional[int],
-    condition: str,
-) -> List[VehicleListingResult]:
-    """Synchronous: call Bedrock Converse (DeepSeek) to generate car listings JSON."""
-    import boto3
-
-    _ensure_nova_act_api_key_env()
-    ak, sk = _get_aws_credentials()
-    if not ak or not sk:
-        # Allow boto3 default credential chain (env AWS_*, IAM role, etc.)
-        logger.debug("Nova Act/Bedrock: using default AWS credential chain")
-
-    s = get_settings()
-    region = s.nova_act_region or "us-east-1"
-
-    kwargs = {"region_name": region}
-    if ak and sk:
-        kwargs["aws_access_key_id"] = ak
-        kwargs["aws_secret_access_key"] = sk
-
-    year_part = ""
-    if year_min or year_max:
-        year_part = f" years {year_min or 'any'}-{year_max or 'any'}"
-    price_part = f" under ${price_max}" if price_max else ""
-    condition_part = (condition or "used").lower()
-
-    prompt = f"""You are a car search assistant. Return a JSON array of exactly 10 vehicle listings that match these criteria:
-- Location: zip code {zip_code}
-- Make: {make or 'any'}
-- Model: {model or 'any'}
-- Year range: {year_part or 'any'}
-- Condition: {condition_part}
-- Price: {price_part or 'any'}
-
-For each listing return a JSON object with these keys only (use empty string or 0 if unknown):
-- title (e.g. "2022 Toyota Camry LE")
-- price (number)
-- mileage (number, odometer miles)
-- listing_url (string, URL to the listing page)
-- image_url (string, URL to the main vehicle photo; use a realistic CDN-style URL or empty if unknown)
-- dealer_name (string)
-- dealer_phone (string)
-- dealer_address (string)
-- year (number)
-- make (string)
-- model (string)
-
-Return only the JSON array, no markdown or explanation. Example: [{{"title":"2022 Toyota Camry","price":28000,"mileage":15000,"listing_url":"...","image_url":"...",...}}, ...]"""
-
-    try:
-        # Use same DeepSeek model as chat so one Bedrock model works for both
-        model_id = s.bedrock_chat_model_id or s.nova_act_model_id or "deepseek.v3.2"
-        client = boto3.client("bedrock-runtime", **kwargs)
-
-        response = client.converse(
-            modelId=model_id,
-            messages=[{"role": "user", "content": [{"text": prompt}]}],
-            inferenceConfig={
-                "maxTokens": 4096,
-                "temperature": 0.3,
-            },
-        )
-        # Converse returns response["output"]["message"]["content"] = list of blocks with "text"
-        output = response.get("output", {})
-        message = output.get("message", {})
-        content_list = message.get("content", []) or []
-        text = ""
-        for block in content_list:
-            if isinstance(block, dict) and block.get("text"):
-                text += block["text"]
-        if not text.strip():
-            return []
-        # Strip markdown code block if present
-        text = text.strip()
-        if text.startswith("```"):
-            text = re.sub(r"^```\w*\n?", "", text)
-            text = re.sub(r"\n?```\s*$", "", text)
-        data = json.loads(text)
-        if not isinstance(data, list):
-            return []
-        return _parse_listings_to_results(data)
-    except Exception as e:
-        logger.exception("Bedrock Converse failed: %s", e)
-        return []
 
 
 def _placeholder_image_url(title: str, year: Optional[int], make: str, model: str) -> str:
@@ -249,6 +161,14 @@ def _parse_listings_to_results(items: List[Dict[str, Any]]) -> List[VehicleListi
             # If no image from LLM, use a placeholder SVG so the card always has an image
             if not image_urls:
                 image_urls = [_placeholder_image_url(title, year, make, model)]
+            vehicle_id = str(row.get("vehicle_id") or f"nova-{i + 1}")
+            logger.info(
+                "Nova Act listing image_urls vehicle_id=%s title=%s count=%s urls=%s",
+                vehicle_id,
+                (title or "")[:50],
+                len(image_urls),
+                [str(u)[:120] + ("…" if len(str(u)) > 120 else "") for u in image_urls],
+            )
             media = MediaInfo(photo_links=image_urls, photo_links_cached=[])
 
             dealer = DealerInfo(
@@ -256,22 +176,34 @@ def _parse_listings_to_results(items: List[Dict[str, Any]]) -> List[VehicleListi
                 phone=dealer_phone,
                 full_address=dealer_address,
             )
-            build = BuildInfo(year=year, make=make, model=model)
+            build = BuildInfo(
+                year=year,
+                make=make,
+                model=model,
+                transmission=str(row.get("transmission") or "").strip(),
+                drivetrain=str(row.get("drivetrain") or "").strip(),
+                fuel_type=str(row.get("fuel_type") or "").strip(),
+                engine=str(row.get("engine") or "").strip(),
+            )
+            inv_type = str(row.get("inventory_type") or row.get("condition") or "used").strip().lower()
+            if inv_type not in ("new", "used", "certified"):
+                inv_type = "used"
             results.append(
                 VehicleListingResult(
                     vehicle_id=str(row.get("vehicle_id") or f"nova-{i + 1}"),
-                    rank=i + 1,
+                    rank=int(row.get("rank") or i + 1),
                     heading=title,
                     title=title,
                     price=price,
                     miles=miles,
+                    vin=str(row.get("vin") or "").strip(),
                     dealer=dealer,
                     build=build,
                     media=media,
                     image_urls=image_urls,
                     listing_url=listing_url,
                     source="nova_act",
-                    inventory_type="used",
+                    inventory_type=inv_type,
                 )
             )
         except Exception as e:
@@ -288,6 +220,141 @@ def _compute_price_stats(results: List[VehicleListingResult]) -> Optional[PriceS
         lowest_price=min(prices),
         highest_price=max(prices),
     )
+
+
+def _ordinal(n: int) -> str:
+    """1 -> '1st', 2 -> '2nd', etc."""
+    if n == 1:
+        return "1st"
+    if n == 2:
+        return "2nd"
+    if n == 3:
+        return "3rd"
+    return f"{n}th"
+
+
+def _run_nova_act_browser_sync(
+    make: str = "",
+    model: str = "",
+    *,
+    year_min: Optional[int] = None,
+    year_max: Optional[int] = None,
+    zip_code: str = "",
+    radius_miles: int = 50,
+    car_type: str = "used",
+    price_min: Optional[int] = None,
+    price_max: Optional[int] = None,
+    max_mileage: Optional[int] = None,
+    num_listings: int = 5,
+    api_key: str = "",
+) -> List[Dict[str, Any]]:
+    """
+    Run Nova Act SDK against cars.com: build URL, open results, click first
+    num_listings vehicle links, get each VDP HTML, parse to listing dicts.
+    Same flow as scripts/run_nova_act_cars.py. Returns list of dicts for _parse_listings_to_results.
+    """
+    logger.info(
+        "Nova Act browser: _run_nova_act_browser_sync ENTERED. Search terms: make=%s model=%s zip=%s radius=%s year_min=%s year_max=%s car_type=%s price_min=%s price_max=%s max_mileage=%s num_listings=%d",
+        make,
+        model,
+        zip_code,
+        radius_miles,
+        year_min,
+        year_max,
+        car_type,
+        price_min,
+        price_max,
+        max_mileage,
+        num_listings,
+    )
+    if not api_key:
+        logger.warning("Nova Act browser: no API key; skipping (set AWS_NOVA_HACKATHON_API_KEY or NOVA_ACT_API_KEY)")
+        return []
+
+    search_url = build_cars_com_search_url(
+        make=make,
+        model=model,
+        year_min=year_min,
+        year_max=year_max,
+        zip_code=zip_code,
+        radius_miles=radius_miles,
+        car_type=car_type,
+        price_min=price_min,
+        price_max=price_max,
+        max_mileage=max_mileage,
+    )
+    logger.info(
+        "Nova Act browser: built cars.com URL with search terms -> %s (num_listings=%d). Opening Nova Act SDK...",
+        search_url,
+        num_listings,
+    )
+
+    try:
+        from nova_act import NovaAct
+    except ImportError:
+        logger.error("Nova Act SDK not installed. Run: pip install nova-act")
+        return []
+
+    os.environ["NOVA_ACT_API_KEY"] = api_key
+    parsed_list: List[Dict[str, Any]] = []
+
+    try:
+        logger.info("Nova Act browser: NovaAct(starting_page=%s) context manager starting (browser will open)...", search_url[:80])
+        with NovaAct(
+            starting_page=search_url,
+            nova_act_api_key=api_key,
+            ignore_https_errors=True,
+        ) as nova:
+            for i in range(1, num_listings + 1):
+                logger.info("Nova Act browser: fetching listing %d/%d", i, num_listings)
+                try:
+                    nova.act(
+                        f"Find and click on the {_ordinal(i)} vehicle listing link in the search results. "
+                        f"If the {_ordinal(i)} listing is not visible on the screen, scroll down the results page until you can see it, then click it. "
+                        "Click only the link that opens that specific vehicle's detail page. "
+                        "Wait for the listing detail page to load."
+                    )
+                    listing_url = getattr(nova.page, "url", None) or ""
+                    if callable(getattr(nova.page, "content", None)):
+                        content = nova.page.content() or ""
+                    else:
+                        content = ""
+                    parsed = parse_cars_com_listing_html(
+                        content,
+                        listing_url=listing_url,
+                        rank=i,
+                        vehicle_id=f"nova-act-{i}",
+                    )
+                    if parsed:
+                        parsed_list.append(parsed)
+                        logger.info(
+                            "Nova Act browser: parsed listing %d title=%s price=%s images=%d",
+                            i,
+                            (parsed.get("title") or "")[:50],
+                            parsed.get("price"),
+                            len(parsed.get("image_urls") or []),
+                        )
+                    else:
+                        logger.warning("Nova Act browser: parse failed for listing %d", i)
+                    # Back to search results for next listing
+                    nova.page.goto(search_url)
+                except Exception as e:
+                    logger.warning("Nova Act browser: listing %d failed: %s", i, e)
+                    try:
+                        nova.page.goto(search_url)
+                    except Exception:
+                        pass
+    except Exception as e:
+        logger.exception("Nova Act browser: run failed: %s", e)
+        return parsed_list
+
+    # Return whatever we got: 0 to num_listings (empty list if none)
+    logger.info(
+        "Nova Act browser: collected %d listings (requested up to %d); returning as-is.",
+        len(parsed_list),
+        num_listings,
+    )
+    return parsed_list
 
 
 async def _run_workflow_and_get_results(
@@ -387,9 +454,24 @@ async def search_listings_nova_act(
     rows: int = 10,
 ) -> Tuple[List[VehicleListingResult], int, Optional[PriceStats]]:
     """
-    Search for vehicles using Nova Act (workflow if deployed) or Bedrock Nova Lite.
-    Results are cached 30 min by (zip, make, model, filters) to reduce API usage (stay under 5000 RPD).
+    Search for vehicles using Nova Act only: workflow (S3) or browser (cars.com via SDK).
+    When API key is set, uses browser path (same as run_nova_act_cars.py). Results cached 30 min.
     """
+    logger.info(
+        "Nova Act search_listings_nova_act CALLED: make=%s model=%s zip_code=%s radius=%s year_min=%s year_max=%s car_type=%s price_min=%s price_max=%s max_mileage=%s rows=%s",
+        make,
+        model,
+        zip_code,
+        radius_miles,
+        year_min,
+        year_max,
+        car_type,
+        price_min,
+        price_max,
+        max_mileage,
+        rows,
+    )
+
     key = _cache_key(
         zip_code, make, model, year_min, year_max, price_min, price_max, max_mileage, car_type
     )
@@ -397,6 +479,7 @@ async def search_listings_nova_act(
         if key in _cache:
             ts, results, total, stats = _cache[key]
             if time.monotonic() - ts < _CACHE_TTL_SEC:
+                logger.info("Nova Act: cache HIT for this search; returning %d cached results", len(results))
                 return results, total, stats
             del _cache[key]
         while len(_cache) >= _CACHE_MAX_SIZE:
@@ -407,24 +490,67 @@ async def search_listings_nova_act(
     region = s.nova_act_region or "us-east-1"
     model_id = s.nova_act_model_id or "us.amazon.nova-2-lite-v1:0"
     workflow_name = (s.nova_act_workflow_name or "").strip()
+    api_key = _get_nova_act_api_key()
 
     if not has_nova_act_configured():
-        logger.debug("Nova Act/Bedrock car search not configured (missing AWS credentials); returning no results")
+        logger.warning(
+            "Nova Act: not configured (no AWS creds and no Nova Act API key). Returning no results."
+        )
         return [], 0, None
 
-    if workflow_name:
+    if workflow_name and not api_key:
+        # Have workflow config but no API key -> use workflow (S3 results)
+        logger.info(
+            "Nova Act PATH DECISION: using WORKFLOW (workflow_name=%s). Real data from deployed workflow.",
+            workflow_name,
+        )
         results = await _run_workflow_and_get_results(workflow_name, model_id, region)
-    else:
-        results = await asyncio.to_thread(
-            _bedrock_listings_from_prompt,
-            zip_code,
+    elif api_key:
+        # API key set -> use Nova Act SDK browser (real cars.com data, same as run_nova_act_cars.py)
+        logger.info(
+            "Nova Act PATH DECISION: using BROWSER (Nova Act SDK). Real data from cars.com. make=%s model=%s zip=%s rows=%d",
             make,
             model,
-            year_min,
-            year_max,
-            price_max,
-            car_type,
+            zip_code,
+            min(rows, 10),
         )
+        num_listings = min(rows, 10)
+        logger.info("Nova Act browser: invoking _run_nova_act_browser_sync in thread (this will open cars.com)...")
+        parsed_list = await asyncio.to_thread(
+            _run_nova_act_browser_sync,
+            make,
+            model,
+            year_min=year_min,
+            year_max=year_max,
+            zip_code=zip_code,
+            radius_miles=radius_miles,
+            car_type=car_type,
+            price_min=price_min,
+            price_max=price_max,
+            max_mileage=max_mileage,
+            num_listings=num_listings,
+            api_key=api_key,
+        )
+        results = _parse_listings_to_results(parsed_list) if parsed_list else []
+        if len(results) == 0:
+            logger.info("Nova Act browser: no listings collected; returning empty list.")
+        elif len(results) < num_listings:
+            logger.info(
+                "Nova Act browser: returning %d listings (requested up to %d); fewer results available.",
+                len(results),
+                num_listings,
+            )
+        else:
+            logger.info(
+                "Nova Act browser: DONE. Returned %d VehicleListingResults (real cars.com listings).",
+                len(results),
+            )
+    else:
+        # No workflow and no API key -> no Nova Act path; return empty (Bedrock synthetic path removed)
+        logger.warning(
+            "Nova Act: no workflow and no API key. Set AWS_NOVA_HACKATHON_API_KEY or NOVA_ACT_API_KEY for browser data, or use MarketCheck (CAR_SEARCH_PROVIDER=marketcheck). Returning no results."
+        )
+        results = []
 
     if rows and len(results) > rows:
         results = results[:rows]

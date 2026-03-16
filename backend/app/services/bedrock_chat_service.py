@@ -54,29 +54,34 @@ def _converse_sync(
 
     converse_messages = []
     for m in messages:
-        role = m.get("role", "user")
+        role = (m.get("role") or "user").strip().lower()
+        if role not in ("user", "assistant"):
+            role = "user"
         content = m.get("content", "")
         if isinstance(content, str):
-            content = [{"text": content}]
+            content = [{"text": content}] if content else [{"text": " "}]
         elif isinstance(content, list) and content and isinstance(content[0], dict):
             pass
         else:
-            content = [{"text": str(content)}]
+            content = [{"text": str(content) or " "}]
         converse_messages.append({"role": role, "content": content})
 
-    system_block = None
-    if system:
-        system_block = [{"text": system}]
+    if not converse_messages:
+        logger.warning("Converse called with no messages; returning empty")
+        return ""
 
-    response = client.converse(
-        modelId=model_id,
-        messages=converse_messages,
-        system=system_block,
-        inferenceConfig={
+    request_kwargs = {
+        "modelId": model_id,
+        "messages": converse_messages,
+        "inferenceConfig": {
             "maxTokens": max_tokens,
             "temperature": temperature,
         },
-    )
+    }
+    if system:
+        request_kwargs["system"] = [{"text": system}]
+
+    response = client.converse(**request_kwargs)
 
     output = response.get("output", {})
     message = output.get("message", {})

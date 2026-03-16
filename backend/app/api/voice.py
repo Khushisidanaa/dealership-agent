@@ -37,9 +37,34 @@ router = APIRouter(prefix="/api/voice", tags=["voice"])
 # Twilio fetches TwiML asynchronously when the call connects
 _call_context: dict[str, dict] = {}
 _transcript_dir = Path(__file__).parent.parent.parent / "transcripts"
+_completed_calls_dir = Path(__file__).parent.parent.parent / "completed_calls"
 
 # Completed call results keyed by call_id.  Populated when the WS bridge finishes.
+# Also persisted under completed_calls/{call_id}.json so GET works across workers/restarts.
 _completed_calls: dict[str, dict] = {}
+
+
+def _persist_completed_call(call_id: str, payload: dict) -> None:
+    """Write completed call result to disk so GET /api/voice/call/{id} works across workers."""
+    try:
+        _completed_calls_dir.mkdir(parents=True, exist_ok=True)
+        path = _completed_calls_dir / f"{call_id}.json"
+        with open(path, "w") as f:
+            json.dump(payload, f, indent=0)
+    except Exception as e:
+        log.warning("Could not persist completed call %s: %s", call_id, e)
+
+
+def _load_completed_call(call_id: str) -> dict | None:
+    """Read completed call result from disk if not in memory."""
+    try:
+        path = _completed_calls_dir / f"{call_id}.json"
+        if path.exists():
+            with open(path) as f:
+                return json.load(f)
+    except Exception as e:
+        log.debug("Could not load completed call %s: %s", call_id, e)
+    return None
 
 
 def _wss_url(base_url: str, call_id: str) -> str:
@@ -290,6 +315,7 @@ async def _handle_twilio_voice_nova(websocket: WebSocket, call_id: str):
                     )
                 )
 
+    tasks: list[asyncio.Task] = []
     try:
         voice_log.info("Nova voice: starting bridge, twilio_receiver, nova_sender tasks")
         bridge_task = asyncio.create_task(
@@ -299,22 +325,33 @@ async def _handle_twilio_voice_nova(websocket: WebSocket, call_id: str):
         )
         recv_task = asyncio.create_task(twilio_receiver())
         sender_task = asyncio.create_task(nova_sender())
-        await asyncio.gather(recv_task, bridge_task, sender_task)
+        tasks = [recv_task, bridge_task, sender_task]
+        await asyncio.gather(*tasks)
         voice_log.info("Nova voice: all tasks finished")
     except Exception as e:
         log.exception("Nova Sonic bridge error: %s", e)
+        for t in tasks:
+            if not t.done():
+                t.cancel()
+        for t in tasks:
+            try:
+                await t
+            except asyncio.CancelledError:
+                pass
     finally:
         try:
             await websocket.close()
         except Exception:
             pass
-        _completed_calls[call_id] = {
+        payload = {
             "status": "completed",
             "transcript": list(transcript),
             "transcript_text": "\n".join(
                 f"{'Agent' if r == 'agent' else 'Dealer'}: {c}" for r, c in transcript
             ),
         }
+        _completed_calls[call_id] = payload
+        _persist_completed_call(call_id, payload)
         if transcript:
             _write_transcript(transcript)
         _call_context.pop(call_id, None)
@@ -451,13 +488,15 @@ async def _handle_twilio_voice_deepgram(websocket: WebSocket, call_id: str):
             await websocket.close()
         except Exception:
             pass
-        _completed_calls[call_id] = {
+        payload = {
             "status": "completed",
             "transcript": list(transcript),
             "transcript_text": "\n".join(
                 f"{'Agent' if r == 'agent' else 'Dealer'}: {c}" for r, c in transcript
             ),
         }
+        _completed_calls[call_id] = payload
+        _persist_completed_call(call_id, payload)
         if transcript:
             _write_transcript(transcript)
         _call_context.pop(call_id, None)
@@ -473,12 +512,22 @@ async def _handle_twilio_voice(websocket: WebSocket, call_id: str):
 
 @router.get("/call/{call_id}")
 async def get_call_result(call_id: str):
-    """Poll for a completed call transcript."""
+    """Poll for a completed call transcript. Always returns transcript_text and transcript for consistent shape."""
     if call_id in _completed_calls:
-        return _completed_calls[call_id]
+        out = dict(_completed_calls[call_id])
+        out.setdefault("transcript_text", "")
+        out.setdefault("transcript", [])
+        return out
+    # Check disk so polling works across workers or after restart
+    persisted = _load_completed_call(call_id)
+    if persisted:
+        persisted.setdefault("transcript_text", "")
+        persisted.setdefault("transcript", [])
+        _completed_calls[call_id] = persisted  # cache so we don't re-read
+        return persisted
     if call_id in _call_context:
-        return {"status": "in_progress", "transcript_text": ""}
-    return {"status": "unknown", "transcript_text": ""}
+        return {"status": "in_progress", "transcript_text": "", "transcript": []}
+    return {"status": "unknown", "transcript_text": "", "transcript": []}
 
 
 def get_completed_calls() -> dict[str, dict]:

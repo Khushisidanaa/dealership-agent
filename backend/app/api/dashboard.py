@@ -71,6 +71,12 @@ async def get_dashboard(session_id: str):
         CommunicationDocument.session_id == session_id
     ).to_list()
 
+    def _transcript_text(c: CommunicationDocument) -> str | None:
+        if not c.transcript:
+            return None
+        parts = [t.get("text", "") for t in c.transcript if isinstance(t, dict)]
+        return "".join(parts).strip() or None
+
     comm_status = [
         CommunicationStatusOut(
             vehicle_id=c.vehicle_id,
@@ -78,6 +84,7 @@ async def get_dashboard(session_id: str):
             call_made=c.comm_type == "call" and c.status == "completed",
             response=c.summary,
             call_details=c.call_details,
+            transcript_text=_transcript_text(c),
         )
         for c in comms
     ]
@@ -91,7 +98,7 @@ async def get_dashboard(session_id: str):
 
 @router.get("/export-pdf")
 async def export_dashboard_pdf(session_id: str):
-    """Generate a PDF report of the dashboard using Foxit Document Generation API."""
+    """Generate a PDF report of the dashboard using Bedrock (DeepSeek) and reportlab."""
     # Reuse same data loading as get_dashboard
     await get_session_or_404(session_id)
 
@@ -140,7 +147,7 @@ async def export_dashboard_pdf(session_id: str):
     }
 
     try:
-        from app.services.foxit_pdf import prepare_dashboard_data, generate_dashboard_pdf
+        from app.services.dashboard_pdf_service import prepare_dashboard_data, generate_dashboard_pdf
 
         data = prepare_dashboard_data(
             vehicles=[{**v} for v in vehicles],

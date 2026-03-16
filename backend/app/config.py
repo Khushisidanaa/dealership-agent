@@ -88,12 +88,12 @@ class Settings(BaseSettings):
     # Optional: S3 bucket/prefix where deployed workflow writes result JSON (to read listings)
     nova_act_result_s3_bucket: str = Field(default="", validation_alias="NOVA_ACT_RESULT_S3_BUCKET")
     nova_act_result_s3_prefix: str = Field(default="", validation_alias="NOVA_ACT_RESULT_S3_PREFIX")
-    # Nova API key (hackathon; used if Nova REST API is configured elsewhere)
+    # Nova API key (hackathon; used for Nova Act SDK browser - real cars.com data)
     aws_nova_hackathon_api_key: str = Field(
         default="",
-        validation_alias="AWS_NOVA_HACKATHON_API_KEY",
+        validation_alias=AliasChoices("AWS_NOVA_HACKATHON_API_KEY", "NOVA_ACT_API_KEY"),
     )
-    # AWS credentials for Nova Act / Bedrock (optional)
+    # AWS credentials for Nova Act workflow (optional)
     # Accept AWS_ACCESS_KEY_ID or ACCESS_KEY; AWS_SECRET_ACCESS_KEY or SECRET_ACCRESS_KEY
     aws_access_key_id: str = Field(
         default="",

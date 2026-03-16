@@ -1,9 +1,10 @@
 """
-Vehicle listings search endpoint (MarketCheck API).
+Vehicle listings search endpoint (Nova Act or MarketCheck).
 """
 
 from fastapi import APIRouter, HTTPException
 
+from app.api.search import persist_search_results
 from app.api.sessions import get_session_or_404
 from app.models.documents import UserDocument
 from app.models.schemas import (
@@ -87,6 +88,8 @@ async def get_listings_for_session(session_id: str):
             status_code=502,
             detail=f"Listing search failed: {str(e)}",
         ) from e
+    # Persist Nova Act / MarketCheck results to MongoDB (search_results) so dashboard and search stay in sync
+    await persist_search_results(session_id, results, price_stats)
     return VehicleListingSearchResponse(
         results=results,
         total_found=total_found,

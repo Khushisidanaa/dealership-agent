@@ -264,13 +264,19 @@ async def _run_nova_sonic_bridge_async(
                 log.warning("Nova Sonic sender: %s (after %d chunks)", e, audio_chunk_count)
             finally:
                 voice_log.info("Nova Sonic sender: sending contentEnd, promptEnd, sessionEnd and closing input stream")
-                await send_event({"event": {"contentEnd": {"promptName": prompt_name, "contentName": audio_content_name}}})
-                await send_event({"event": {"promptEnd": {"promptName": prompt_name}}})
-                await send_event({"event": {"sessionEnd": {}}})
                 try:
+                    await send_event({"event": {"contentEnd": {"promptName": prompt_name, "contentName": audio_content_name}}})
+                    await send_event({"event": {"promptEnd": {"promptName": prompt_name}}})
+                    await send_event({"event": {"sessionEnd": {}}})
                     await stream.input_stream.close()
+                except asyncio.CancelledError:
+                    pass
                 except Exception as ex:
-                    log.warning("Nova Sonic sender: close input_stream: %s", ex)
+                    # Expected when stream is already closed (awscrt HTTP_STREAM_HAS_COMPLETED, InvalidStateError)
+                    if "HTTP_STREAM" in str(ex) or "CANCELLED" in str(ex) or "stream" in str(ex).lower():
+                        voice_log.debug("Nova Sonic sender: stream already closed (%s)", ex)
+                    else:
+                        log.warning("Nova Sonic sender: close input_stream: %s", ex)
 
         async def receiver() -> None:
             out_chunk_count = 0
@@ -291,6 +297,16 @@ async def _run_nova_sonic_bridge_async(
                     except json.JSONDecodeError:
                         log.warning("Nova Sonic receiver: invalid JSON from stream (len=%d)", len(data))
                         continue
+                    # Bedrock may send error payload (e.g. "Invalid input request" when stream is closed)
+                    if not obj.get("event"):
+                        err_msg = obj.get("message") or obj.get("error") or data[:200]
+                        if err_msg and ("invalid" in str(err_msg).lower() or "error" in str(err_msg).lower()):
+                            voice_log.info(
+                                "Nova Sonic receiver: stream error from Bedrock, treating as end (event_types_seen=%s, out_audio_chunks=%d)",
+                                event_types_seen,
+                                out_chunk_count,
+                            )
+                            break
                     ev = obj.get("event", {})
                     for key in ev:
                         event_types_seen.add(key)
@@ -334,12 +350,23 @@ async def _run_nova_sonic_bridge_async(
         recv_task = asyncio.create_task(receiver())
         try:
             await sender()
-        finally:
-            recv_task.cancel()
+            # Let receiver drain remaining events (transcript, etc.) after we closed the input stream
             try:
-                await recv_task
-            except asyncio.CancelledError:
-                pass
+                await asyncio.wait_for(recv_task, timeout=15.0)
+            except asyncio.TimeoutError:
+                voice_log.info("Nova Sonic: receiver drain timed out after 15s")
+                recv_task.cancel()
+                try:
+                    await recv_task
+                except asyncio.CancelledError:
+                    pass
+        finally:
+            if not recv_task.done():
+                recv_task.cancel()
+                try:
+                    await recv_task
+                except asyncio.CancelledError:
+                    pass
     finally:
         if prev_ak is not None:
             os.environ["AWS_ACCESS_KEY_ID"] = prev_ak

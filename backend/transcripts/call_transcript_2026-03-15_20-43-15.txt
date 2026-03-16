@@ -1,0 +1,46 @@
+User: hello
+
+Agent: Hi there! I'm calling about the 2017 Toyota Prius Three you have listed at South Valley Motors.
+
+Agent: Is that one still available?  And if it is, could you tell me a bit about its condition?
+
+Agent: Hi there! I'm calling about the 2017 Toyota Prius Three you have listed at South Valley Motors.
+
+Agent: Is that one still available?  And if it is, could you tell me a bit about its condition?
+
+User: ah sorry that car got sold today
+
+User: we do not have it
+
+Agent: No worries, thanks for letting me know. Do you have anything similar in that price range?
+
+Agent: And if you do, could you tell me a bit about the condition of those vehicles?
+
+Agent: No worries, thanks for letting me know. Do you have anything similar in that price range?
+
+Agent: And if you do, could you tell me a bit about the condition of those vehicles?
+
+User: no not really
+
+Agent: Understood, thanks for the info. Is there any other model or make that you would recommend in that price range?
+
+Agent: Understood, thanks for the info. Is there any other model or make that you would recommend in that price range?
+
+User: hmm
+
+Agent: Take your time. I'm here to help you find the right car, so feel free to let me know if you think of anything.
+
+Agent: Take your time. I'm here to help you find the right car, so feel free to let me know if you think of anything.
+
+User: no worries
+
+User: no i do not have any other car in that price range
+
+Agent: No problem, thanks for your help. If you ever come across something that might fit, please let me know.
+
+Agent: Have a great day!
+
+Agent: No problem, thanks for your help. If you ever come across something that might fit, please let me know.
+
+Agent: Have a great day!
+

@@ -31,6 +31,13 @@ from app.models.documents import SearchResultDocument, CommunicationDocument, Se
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/sessions/{session_id}", tags=["analyze"])
 
+
+def _transcript_text_from_comm(c: CommunicationDocument) -> str:
+    if not c.transcript:
+        return ""
+    parts = [t.get("text", "") for t in c.transcript if isinstance(t, dict)]
+    return "".join(parts).strip()
+
 # ---------------------------------------------------------------------------
 # Testing overrides -- change these for demo / hackathon
 # ---------------------------------------------------------------------------
@@ -386,3 +393,25 @@ async def analyze_vehicles(session_id: str, request: Request):
             "X-Accel-Buffering": "no",
         },
     )
+
+
+@router.get("/analyze/calls")
+async def get_analyze_calls(session_id: str):
+    """Return call results for this session (from DB). Used by Dealer Calls page to poll for transcripts."""
+    await get_session_or_404(session_id)
+    comms = await CommunicationDocument.find(
+        CommunicationDocument.session_id == session_id,
+        CommunicationDocument.comm_type == "call",
+    ).to_list()
+    return {
+        "calls": [
+            {
+                "vehicle_id": c.vehicle_id,
+                "status": "completed" if c.status == "completed" else "failed",
+                "transcript_text": _transcript_text_from_comm(c),
+                "summary": c.summary,
+                "call_details": c.call_details,
+            }
+            for c in comms
+        ],
+    }
