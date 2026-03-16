@@ -195,7 +195,7 @@ export function AnalyzingView({
               call.status === "completed" ? ("done" as const) : ("failed" as const);
             const summary =
               call.call_details != null
-                ? (call.call_details as CallSummary)
+                ? (call.call_details as unknown as CallSummary)
                 : null;
             return prev.map((x) =>
               x.vehicle_id === call.vehicle_id
