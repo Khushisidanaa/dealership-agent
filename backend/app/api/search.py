@@ -15,7 +15,7 @@ from app.models.schemas import (
     VehicleResult,
     VehicleListingResult,
 )
-from app.services.marketcheck_service import search_listings
+from app.services.car_search import search_listings
 
 log = logging.getLogger(__name__)
 
@@ -97,7 +97,7 @@ def _limit_per_dealer(vehicles: list[dict], max_per_dealer: int = MAX_PER_DEALER
 
 
 async def _run_search(session_id: str) -> tuple[list[dict], dict | None, str]:
-    """Search MarketCheck for vehicles matching session preferences."""
+    """Search for vehicles (Nova Act or MarketCheck) matching session preferences."""
     session = await get_session_or_404(session_id)
     prefs = session.preferences or {}
     extra = session.additional_filters or {}
@@ -130,7 +130,7 @@ async def _run_search(session_id: str) -> tuple[list[dict], dict | None, str]:
             rows=50,
         )
     except Exception as exc:
-        log.exception("MarketCheck search failed: %s", exc)
+        log.exception("Car search failed: %s", exc)
         results, total, price_stats_obj = [], 0, None
 
     all_vehicles = [_flatten_listing(r, i + 1) for i, r in enumerate(results)]

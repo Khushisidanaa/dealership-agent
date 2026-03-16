@@ -1,0 +1,28 @@
+User: hello
+
+Agent: Hi! I'm calling on behalf of Matt about the 2017 Toyota Prius Two you have listed at Sandy Auto Sales.
+
+Agent: They'd love to come in for a test drive on 2026-04-01 around 08:08.
+
+Agent: Would that work?
+
+Agent: Hi! I'm calling on behalf of Matt about the 2017 Toyota Prius Two you have listed at Sandy Auto Sales.
+
+Agent: They'd love to come in for a test drive on 2026-04-01 around 08:08.
+
+Agent: Would that work?
+
+User: yeah that could work that would work perfectly
+
+Agent: Great, the date and time are confirmed! Matt will be there.
+
+Agent: Thanks so much!
+
+Agent: Great, the date and time are confirmed! Matt will be there.
+
+Agent: Thanks so much!
+
+User: thank you goodbye
+
+Agent: You're welcome! Have a great day!
+

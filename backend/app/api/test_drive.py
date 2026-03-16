@@ -6,10 +6,9 @@ import json
 import logging
 
 from fastapi import APIRouter, HTTPException
-from langchain_core.messages import SystemMessage
-from langchain_openai import ChatOpenAI
 
 from app.api.sessions import get_session_or_404
+from app.services.bedrock_chat_service import invoke_converse_sync
 from app.api.call_utils import initiate_call, poll_for_transcript
 from app.agent.prompts.test_drive_call import (
     build_test_drive_prompt,
@@ -161,13 +160,12 @@ async def call_dealer_for_test_drive(session_id: str, body: TestDriveCallRequest
     )
 
     try:
-        llm = ChatOpenAI(
-            model=settings.openai_model,
-            api_key=settings.openai_api_key,
+        raw = invoke_converse_sync(
+            [{"role": "user", "content": summary_prompt}],
             temperature=0.1,
+            max_tokens=1024,
         )
-        response = llm.invoke([SystemMessage(content=summary_prompt)])
-        parsed = _parse_call_result(response.content)
+        parsed = _parse_call_result(raw)
     except Exception as exc:
         log.warning("LLM summary failed for test-drive call: %s", exc)
         parsed = {

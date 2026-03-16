@@ -1,6 +1,10 @@
-"""OpenAI LLM integration for the conversational agent."""
+"""Bedrock (DeepSeek) LLM integration for the conversational agent."""
+
+import json
+import re
 
 from app.config import get_settings
+from app.services.bedrock_chat_service import has_bedrock_configured, invoke_converse
 
 SYSTEM_PROMPT = """You are a helpful car-buying assistant. Your job is to understand what car the user wants and fill in their requirements.
 
@@ -25,46 +29,35 @@ async def get_chat_reply(
 ) -> dict:
     """Get a reply from the LLM given chat history and current preferences.
 
-    Returns dict with keys: reply, updated_filters, is_ready_to_search.
+    Uses Amazon Bedrock (DeepSeek). Returns dict with keys: reply, updated_filters, is_ready_to_search.
     """
     settings = get_settings()
 
-    if not settings.openai_api_key:
-        # Fallback stub when API key not configured
+    if not has_bedrock_configured():
         return {
             "reply": (
                 "I'd love to help refine your search! "
                 "Could you tell me about any color preference or must-have features? "
-                "(Note: OpenAI key not configured -- using stub response)"
+                "(Note: Bedrock not configured -- using stub response)"
             ),
             "updated_filters": None,
             "is_ready_to_search": False,
         }
 
-    import openai
-
-    client = openai.AsyncOpenAI(api_key=settings.openai_api_key)
-
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-    messages.append({
-        "role": "system",
-        "content": f"Current preferences: {preferences}\nAdditional filters: {additional_filters}",
-    })
+    system = f"{SYSTEM_PROMPT}\n\nCurrent preferences: {preferences}\nAdditional filters: {additional_filters}"
+    messages = []
     for role, content in history:
         messages.append({"role": role, "content": content})
 
-    response = await client.chat.completions.create(
-        model=settings.openai_model,
-        messages=messages,
+    raw = await invoke_converse(
+        messages,
+        system=system,
         temperature=0.7,
+        max_tokens=2048,
     )
 
-    import json
-    import re
-
-    raw = response.choices[0].message.content or "{}"
-    # Strip optional markdown code block so any model works
-    raw = re.sub(r"^```(?:json)?\s*", "", raw.strip())
+    raw = (raw or "{}").strip()
+    raw = re.sub(r"^```(?:json)?\s*", "", raw)
     raw = re.sub(r"\s*```\s*$", "", raw)
     try:
         out = json.loads(raw)

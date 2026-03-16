@@ -169,33 +169,25 @@ async def analyze_document(
     if not include_summary:
         return result
 
-    settings = get_settings()
-    if not settings.openai_api_key:
+    from app.services.bedrock_chat_service import has_bedrock_configured, invoke_converse
+
+    if not has_bedrock_configured():
         result["summary"] = (
-            "Summary not available (OpenAI key not set). Use extracted_text for full content."
+            "Summary not available (Bedrock not configured). Use extracted_text for full content."
         )
         return result
 
-    # Use LLM to summarize, especially for vehicle/Carfax-style content
-    import openai
-
-    client = openai.AsyncOpenAI(api_key=settings.openai_api_key)
     prompt = """Summarize this vehicle document (e.g. Carfax, inspection report) in a short, clear way.
 Highlight: title history, accidents or damage, service history, mileage/odometer, number of owners, and any red flags.
 If it's not a vehicle document, summarize the main points.
 Keep the summary to 1–2 short paragraphs."""
 
-    # Truncate if very long to stay within token limits
     text_for_llm = extracted if len(extracted) <= 12000 else extracted[:12000] + "\n\n[Document truncated.]"
 
-    response = await client.chat.completions.create(
-        model=settings.openai_model,
-        messages=[
-            {"role": "system", "content": prompt},
-            {"role": "user", "content": text_for_llm},
-        ],
+    raw = await invoke_converse(
+        [{"role": "user", "content": f"{prompt}\n\nDocument:\n{text_for_llm}"}],
         temperature=0.3,
         max_tokens=600,
     )
-    result["summary"] = (response.choices[0].message.content or "").strip()
+    result["summary"] = (raw or "").strip()
     return result

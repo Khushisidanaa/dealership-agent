@@ -1,8 +1,8 @@
 """
-Voice call API: Twilio + Deepgram bridge for autonomous dealership calls.
+Voice call API: Twilio + voice agent (Amazon Nova Sonic or Deepgram) for autonomous dealership calls.
 
-Single endpoint to initiate calls: POST /api/voice/call
-Twilio webhooks: GET/POST /api/voice/twiml, WebSocket /api/voice/ws
+Same flow for both: POST /api/voice/call → Twilio calls dealer → TwiML → WebSocket → bridge to voice agent.
+Uses Nova Sonic when AWS credentials are configured; otherwise Deepgram.
 """
 
 import asyncio
@@ -25,8 +25,11 @@ from fastapi import (
 from fastapi.responses import Response
 
 from app.config import get_settings
+from app.services.nova_sonic_service import has_nova_sonic_configured, run_nova_sonic_bridge
 
 log = logging.getLogger(__name__)
+# Use uvicorn's logger so voice/Nova diagnostics show in the same console as "connection open"
+voice_log = logging.getLogger("uvicorn.error")
 
 router = APIRouter(prefix="/api/voice", tags=["voice"])
 
@@ -100,14 +103,20 @@ async def initiate_call(req: VoiceCallRequest):
     ):
         raise HTTPException(status_code=503, detail="Twilio not configured")
 
-    if not settings.deepgram_api_key:
-        raise HTTPException(status_code=503, detail="Deepgram not configured")
-
-    base = settings.server_base_url.rstrip("/")
-    if not base.startswith("http"):
+    if not has_nova_sonic_configured() and not settings.deepgram_api_key:
         raise HTTPException(
             status_code=503,
-            detail="Set SERVER_BASE_URL to your public URL (e.g. from ngrok)",
+            detail="Voice not configured: set AWS credentials (ACCESS_KEY/SECRET_ACCRESS_KEY) for Nova Sonic or DEEPGRAM_API_KEY",
+        )
+
+    base = settings.server_base_url.rstrip("/")
+    if not base.startswith("http") or "127.0.0.1" in base or "localhost" in base:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Set SERVER_BASE_URL to a public URL so Twilio can reach your server for the call. "
+                "When running locally: start ngrok (e.g. ngrok http 8000), then set SERVER_BASE_URL to the https URL ngrok shows (no trailing slash)."
+            ),
         )
 
     call_id = str(uuid.uuid4())
@@ -125,6 +134,7 @@ async def initiate_call(req: VoiceCallRequest):
     from twilio.rest import Client
     from twilio.base.exceptions import TwilioRestException
 
+    log.info("Placing voice call to: %s (from=%s)", req.to_number, settings.twilio_phone_number)
     try:
         client = Client(settings.twilio_account_sid, settings.twilio_auth_token)
         call = client.calls.create(
@@ -136,9 +146,19 @@ async def initiate_call(req: VoiceCallRequest):
     except TwilioRestException as exc:
         log.error("Twilio call failed: %s", exc.msg)
         _call_context.pop(call_id, None)
-        raise HTTPException(status_code=502, detail=f"Twilio error: {exc.msg}")
+        msg = exc.msg or str(exc)
+        if "unverified" in msg.lower() or "verified" in msg.lower():
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Twilio trial account: you can only call verified numbers. "
+                    "Add and verify the dealer number in Twilio Console → Phone Numbers → Manage → Verified Caller IDs, "
+                    "or upgrade your Twilio account to call any number."
+                ),
+            )
+        raise HTTPException(status_code=502, detail=f"Twilio error: {msg}")
 
-    log.info("Call initiated: %s -> %s (call_id=%s)", call.sid, req.to_number, call_id)
+    log.info("Call initiated: calling %s (Twilio sid=%s, call_id=%s)", req.to_number, call.sid, call_id)
 
     return VoiceCallResponse(
         call_id=call_id,
@@ -181,7 +201,126 @@ async def twiml_webhook(
 # ---------------------------------------------------------------------------
 
 
-async def _handle_twilio_voice(websocket: WebSocket, call_id: str):
+async def _handle_twilio_voice_nova(websocket: WebSocket, call_id: str):
+    """Bridge Twilio Media Stream to Amazon Nova Sonic (same flow as Deepgram)."""
+    voice_log.info("Nova voice: WebSocket connected call_id=%s", call_id)
+    ctx = _call_context.get(call_id, {})
+    agent_prompt = ctx.get("agent_prompt", "You are a friendly AI assistant.")
+    greeting = ctx.get("greeting", "Hi, how can I help you?")
+
+    audio_in_queue: asyncio.Queue = asyncio.Queue()
+    audio_out_queue: asyncio.Queue = asyncio.Queue()
+    streamsid_queue: asyncio.Queue = asyncio.Queue()
+    transcript: list[tuple[str, str]] = []
+    end_event = asyncio.Event()
+
+    # Twilio Media Streams: 8kHz mulaw, 20ms = 160 bytes per chunk (see Twilio Media Streams WebSocket docs)
+    # Use 20ms chunks for low latency; buffering more delays the model's response (e.g. 30s before speaking)
+    TWILIO_CHUNK_BYTES = 160
+
+    async def twilio_receiver():
+        inbuffer = bytearray()
+        media_events = 0
+        try:
+            while True:
+                msg = await websocket.receive_text()
+                data = json.loads(msg)
+                if data.get("event") == "start":
+                    streamsid_queue.put_nowait(data.get("start", {}).get("streamSid"))
+                    voice_log.info("Nova voice: Twilio stream start")
+                if data.get("event") == "media":
+                    media = data.get("media", {})
+                    if media.get("track") == "inbound":
+                        media_events += 1
+                        if media_events == 1:
+                            voice_log.info("Nova voice: first inbound media from Twilio")
+                        inbuffer.extend(base64.b64decode(media.get("payload", "")))
+                if data.get("event") == "stop":
+                    voice_log.info("Nova voice: Twilio stream stop (received %d media events)", media_events)
+                    break
+                while len(inbuffer) >= TWILIO_CHUNK_BYTES:
+                    await audio_in_queue.put(bytes(inbuffer[:TWILIO_CHUNK_BYTES]))
+                    inbuffer = inbuffer[TWILIO_CHUNK_BYTES:]
+        except WebSocketDisconnect:
+            voice_log.info("Nova voice: Twilio WebSocket disconnected")
+        except Exception as e:
+            log.exception("Twilio receiver: %s", e)
+        finally:
+            await audio_in_queue.put(None)
+
+    async def nova_sender():
+        stream_sid = await streamsid_queue.get()
+        voice_log.info("Nova voice: got stream_sid, waiting for TTS from Nova Sonic...")
+        # Twilio expects 160-byte (20ms) mulaw payloads per "media" message; other sizes can cause static/distortion
+        outbuffer = bytearray()
+        out_count = 0
+        while True:
+            chunk = await audio_out_queue.get()
+            if chunk is None:
+                # Flush remainder
+                while len(outbuffer) >= TWILIO_CHUNK_BYTES:
+                    frame = bytes(outbuffer[:TWILIO_CHUNK_BYTES])
+                    outbuffer = outbuffer[TWILIO_CHUNK_BYTES:]
+                    out_count += 1
+                    await websocket.send_text(
+                        json.dumps(
+                            {
+                                "event": "media",
+                                "streamSid": stream_sid,
+                                "media": {"payload": base64.b64encode(frame).decode("ascii")},
+                            }
+                        )
+                    )
+                voice_log.info("Nova voice: nova_sender done, sent %d frames to Twilio", out_count)
+                break
+            outbuffer.extend(chunk)
+            if out_count == 0 and len(outbuffer) >= TWILIO_CHUNK_BYTES:
+                voice_log.info("Nova voice: first TTS frame to Twilio")
+            while len(outbuffer) >= TWILIO_CHUNK_BYTES:
+                frame = bytes(outbuffer[:TWILIO_CHUNK_BYTES])
+                outbuffer = outbuffer[TWILIO_CHUNK_BYTES:]
+                out_count += 1
+                await websocket.send_text(
+                    json.dumps(
+                        {
+                            "event": "media",
+                            "streamSid": stream_sid,
+                            "media": {"payload": base64.b64encode(frame).decode("ascii")},
+                        }
+                    )
+                )
+
+    try:
+        voice_log.info("Nova voice: starting bridge, twilio_receiver, nova_sender tasks")
+        bridge_task = asyncio.create_task(
+            run_nova_sonic_bridge(
+                agent_prompt, greeting, audio_in_queue, audio_out_queue, transcript, end_event
+            )
+        )
+        recv_task = asyncio.create_task(twilio_receiver())
+        sender_task = asyncio.create_task(nova_sender())
+        await asyncio.gather(recv_task, bridge_task, sender_task)
+        voice_log.info("Nova voice: all tasks finished")
+    except Exception as e:
+        log.exception("Nova Sonic bridge error: %s", e)
+    finally:
+        try:
+            await websocket.close()
+        except Exception:
+            pass
+        _completed_calls[call_id] = {
+            "status": "completed",
+            "transcript": list(transcript),
+            "transcript_text": "\n".join(
+                f"{'Agent' if r == 'agent' else 'Dealer'}: {c}" for r, c in transcript
+            ),
+        }
+        if transcript:
+            _write_transcript(transcript)
+        _call_context.pop(call_id, None)
+
+
+async def _handle_twilio_voice_deepgram(websocket: WebSocket, call_id: str):
     """Bridge Twilio Media Stream to Deepgram Voice Agent."""
     import websockets
 
@@ -322,6 +461,14 @@ async def _handle_twilio_voice(websocket: WebSocket, call_id: str):
         if transcript:
             _write_transcript(transcript)
         _call_context.pop(call_id, None)
+
+
+async def _handle_twilio_voice(websocket: WebSocket, call_id: str):
+    """Bridge Twilio Media Stream to voice agent (Nova Sonic or Deepgram)."""
+    if has_nova_sonic_configured():
+        await _handle_twilio_voice_nova(websocket, call_id)
+    else:
+        await _handle_twilio_voice_deepgram(websocket, call_id)
 
 
 @router.get("/call/{call_id}")

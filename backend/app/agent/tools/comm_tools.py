@@ -1,4 +1,4 @@
-"""Communication tools for the LangGraph agent -- Twilio SMS and Deepgram voice."""
+"""Communication tools for the LangGraph agent -- Twilio SMS and voice (Nova Sonic or Deepgram)."""
 
 import asyncio
 from uuid import uuid4
@@ -6,6 +6,7 @@ from uuid import uuid4
 from langchain_core.tools import tool
 
 from app.config import get_settings
+from app.services.nova_sonic_service import has_nova_sonic_configured
 
 
 @tool
@@ -51,7 +52,7 @@ def initiate_dealer_call(
     vehicle_info: str,
     purpose: str,
 ) -> dict:
-    """Start an autonomous AI voice call to a dealer via Twilio + Deepgram.
+    """Start an autonomous AI voice call to a dealer via Twilio + Nova Sonic (or Deepgram).
 
     Args:
         phone: Dealer phone number in E.164 format.
@@ -64,7 +65,7 @@ def initiate_dealer_call(
     settings = get_settings()
     call_id = str(uuid4())
 
-    if not settings.twilio_account_sid or not settings.deepgram_api_key:
+    if not settings.twilio_account_sid or (not has_nova_sonic_configured() and not settings.deepgram_api_key):
         return {
             "call_id": call_id,
             "status": "completed",
@@ -78,7 +79,7 @@ def initiate_dealer_call(
             ],
         }
 
-    # Real Twilio + Deepgram pipeline would go here
+    # Real Twilio + Nova Sonic (or Deepgram) pipeline via /api/voice/call
     return {
         "call_id": call_id,
         "status": "initiating",

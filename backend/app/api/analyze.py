@@ -42,8 +42,10 @@ def _sse_event(event: str, data: dict) -> str:
 
 
 async def _summarize_transcript(vehicle: dict, transcript_text: str) -> dict:
-    """Use OpenAI to extract structured data from a transcript."""
-    settings = get_settings()
+    """Use Bedrock (DeepSeek) to extract structured data from a transcript."""
+    from app.services.bedrock_chat_service import has_bedrock_configured, invoke_converse
+    from app.utils import parse_json_from_llm
+
     prompt_text = build_summary_prompt(
         vehicle_title=vehicle.get("title", ""),
         listing_price=vehicle.get("price", 0),
@@ -51,20 +53,16 @@ async def _summarize_transcript(vehicle: dict, transcript_text: str) -> dict:
         transcript_text=transcript_text,
     )
 
-    from langchain_core.messages import SystemMessage
-    from langchain_openai import ChatOpenAI
-
-    llm = ChatOpenAI(
-        model=settings.openai_model,
-        api_key=settings.openai_api_key,
-        temperature=0.1,
-    )
+    if not has_bedrock_configured():
+        return _basic_parse(vehicle, transcript_text)
 
     try:
-        from app.utils import parse_json_from_llm
-
-        response = llm.invoke([SystemMessage(content=prompt_text)])
-        return parse_json_from_llm(response.content)
+        raw = await invoke_converse(
+            [{"role": "user", "content": prompt_text}],
+            temperature=0.1,
+            max_tokens=2048,
+        )
+        return parse_json_from_llm(raw)
     except Exception as exc:
         log.warning("LLM summary failed for %s: %s -- falling back to basic parse", vehicle.get("vehicle_id"), exc)
         return _basic_parse(vehicle, transcript_text)
