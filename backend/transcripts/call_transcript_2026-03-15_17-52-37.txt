@@ -1,0 +1,38 @@
+User: how are you doing
+
+Agent: I'm doing well, thanks for asking! I'm here to help Ashwin with some car details.
+
+Agent: How are you today?
+
+Agent: I'm doing well, thanks for asking! I'm here to help Ashwin with some car details.
+
+Agent: How are you today?
+
+User: i don't know
+
+Agent: No worries at all! I'm here to help with any car questions you might have.
+
+Agent: Let's dive into the details about the 2017 Toyota Prius Three you're interested in.
+
+Agent: No worries at all! I'm here to help with any car questions you might have.
+
+Agent: Let's dive into the details about the 2017 Toyota Prius Three you're interested in.
+
+User: i understand that car is still available
+
+Agent: Great, that's good to hear! Could you also tell me how's the condition on that one?
+
+Agent: Great, that's good to hear! Could you also tell me how's the condition on that one?
+
+User: oh god
+
+Agent: No worries, I'm here to help with any questions you might have.
+
+Agent: Let's focus on the car details. How's the condition on that one?
+
+Agent: No worries, I'm here to help with any questions you might have.
+
+User: okay okay
+
+Agent: Let's get back on track. Could you tell me how's the condition on the 2017 Toyota Prius Three and if it has been in any accidents or had any major repairs?
+

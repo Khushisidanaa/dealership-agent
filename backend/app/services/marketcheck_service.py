@@ -188,9 +188,9 @@ async def search_listings(
         (results, total_found, price_stats)
     """
     settings = get_settings()
-    api_key = settings.marketcheck_api_key
+    api_key = (settings.marketcheck_api_key or "").strip()
     if not api_key:
-        logger.error("MARKETCHECK_API_KEY not configured")
+        logger.debug("MarketCheck not configured (MARKETCHECK_API_KEY missing); listing search disabled")
         return [], 0, None
 
     safe_car_type = car_type if car_type in ("used", "new", "certified") else "used"
@@ -237,8 +237,12 @@ async def search_listings(
         resp = await client.get(MARKETCHECK_BASE, params=params)
 
     if resp.status_code != 200:
-        logger.error("MarketCheck %s: %s", resp.status_code, resp.text[:500])
-        resp.raise_for_status()
+        logger.warning(
+            "MarketCheck %s: %s (returning no results; check MARKETCHECK_API_KEY if 401)",
+            resp.status_code,
+            resp.text[:300],
+        )
+        return [], 0, None
     data = resp.json()
 
     total_found = data.get("num_found", 0)

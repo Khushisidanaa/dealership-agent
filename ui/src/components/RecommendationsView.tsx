@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { api } from "../api/client";
 import type { VehicleResult } from "../types";
+import { VehicleImageSlideshow } from "./VehicleImageSlideshow";
 import "./RecommendationsView.css";
 
 interface RecommendationsViewProps {
@@ -10,9 +11,6 @@ interface RecommendationsViewProps {
   onChangeRequirements?: () => void;
   refreshKey?: number;
 }
-
-const PLACEHOLDER_IMG =
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='260' fill='%231e2a3a'%3E%3Crect width='400' height='260'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%236b7a8f' font-size='16' font-family='system-ui'%3ENo Image%3C/text%3E%3C/svg%3E";
 
 const TOP_COUNT = 5;
 
@@ -33,7 +31,8 @@ export function RecommendationsView({
     setLoading(true);
     setError(null);
     try {
-      const data = await api.search.cars(sessionId);
+      // Load persisted results from MongoDB (no new search)
+      const data = await api.search.latest(sessionId);
       const results =
         data.results ??
         (data as unknown as { vehicles: VehicleResult[] }).vehicles ??
@@ -44,7 +43,7 @@ export function RecommendationsView({
         .map((v) => v.vehicle_id);
       setSelected(new Set(topIds));
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to fetch results");
+      setError(e instanceof Error ? e.message : "Failed to load results");
     } finally {
       setLoading(false);
     }
@@ -101,8 +100,8 @@ export function RecommendationsView({
     return (
       <div className="rec-view-loading">
         <div className="rec-view-spinner" />
-        <h2>Searching for vehicles...</h2>
-        <p>Scanning thousands of listings near you</p>
+        <h2>Loading recommendations...</h2>
+        <p>Reading saved search results</p>
       </div>
     );
   }
@@ -125,14 +124,17 @@ export function RecommendationsView({
   if (vehicles.length === 0) {
     return (
       <div className="rec-view-loading">
-        <h2>No vehicles found</h2>
-        <p>Try adjusting your preferences in the chat or form</p>
+        <h2>No search results yet</h2>
+        <p>
+          Go to Requirements and click &ldquo;Refresh Results&rdquo; (or &ldquo;View
+          Results&rdquo;) to run a search. Results are saved and shown here.
+        </p>
         <button
           type="button"
           className="rv-btn rv-btn--secondary"
           onClick={onChangeRequirements ?? onBack}
         >
-          Change requirements
+          Go to Requirements
         </button>
       </div>
     );
@@ -257,22 +259,15 @@ function VehicleCard({
   onCallDealer: () => void;
   isFeatured: boolean;
 }) {
-  const [imgError, setImgError] = useState(false);
-  const imgSrc = imgError
-    ? PLACEHOLDER_IMG
-    : vehicle.image_urls?.[0] || PLACEHOLDER_IMG;
-
   return (
     <div
       className={`rv-card ${isFeatured ? "rv-card--featured" : ""} ${isSelected ? "rv-card--selected" : ""}`}
     >
       <div className="rv-card-img-wrap">
-        <img
-          src={imgSrc}
+        <VehicleImageSlideshow
+          imageUrls={vehicle.image_urls ?? []}
           alt={vehicle.title}
-          className="rv-card-img"
-          onError={() => setImgError(true)}
-          loading="lazy"
+          imgClassName="rv-card-img"
         />
         <span className="rv-card-rank">#{rank}</span>
         <button

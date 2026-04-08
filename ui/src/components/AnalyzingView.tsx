@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { analyzeVehicles } from "../api/client";
+import { analyzeVehicles, fetchAnalyzeCalls } from "../api/client";
 import type {
   VehicleResult,
   TopVehicle,
@@ -7,6 +7,7 @@ import type {
   DealerCallStatus,
   CallSummary,
 } from "../types";
+import { VehicleImageSlideshow } from "./VehicleImageSlideshow";
 import "./AnalyzingView.css";
 
 interface AnalyzingViewProps {
@@ -49,9 +50,6 @@ export function AnalyzingView({
   );
   const [phase, setPhase] = useState<"calling" | "ranking" | "done">("calling");
   const [top3, setTop3] = useState<TopVehicle[]>([]);
-  const [expandedTranscript, setExpandedTranscript] = useState<string | null>(
-    null,
-  );
   const cancelRef = useRef<(() => void) | null>(null);
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
@@ -180,6 +178,47 @@ export function AnalyzingView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
+  // Poll for call results so the Dealer Calls page updates even if SSE missed call_complete
+  useEffect(() => {
+    if (dealers.length === 0 || phase === "done") return;
+
+    const poll = async () => {
+      try {
+        const { calls } = await fetchAnalyzeCalls(sessionId);
+        for (const call of calls) {
+          setDealers((prev) => {
+            const d = prev.find((x) => x.vehicle_id === call.vehicle_id);
+            if (!d) return prev;
+            const alreadyDone = d.status === "done" || d.status === "failed";
+            if (alreadyDone && d.transcript_text) return prev;
+            const status =
+              call.status === "completed" ? ("done" as const) : ("failed" as const);
+            const summary =
+              call.call_details != null
+                ? (call.call_details as unknown as CallSummary)
+                : null;
+            return prev.map((x) =>
+              x.vehicle_id === call.vehicle_id
+                ? {
+                    ...x,
+                    status,
+                    transcript_text: call.transcript_text || x.transcript_text,
+                    summary: summary ?? x.summary,
+                  }
+                : x,
+            );
+          });
+        }
+      } catch {
+        // ignore poll errors
+      }
+    };
+
+    const interval = window.setInterval(poll, 4000);
+    poll();
+    return () => window.clearInterval(interval);
+  }, [sessionId, dealers.length, phase]);
+
   const doneCount = dealers.filter(
     (d) => d.status === "done" || d.status === "failed",
   ).length;
@@ -281,11 +320,14 @@ export function AnalyzingView({
         </div>
       )}
 
-      {/* Dealer Call Cards */}
+      {/* Dealer Calls: each listing with full transcript underneath */}
       {dealers.length > 0 && (
         <div className="analyzing-calls">
           <h3>Dealer Calls</h3>
-          <div className="call-cards">
+          <p className="analyzing-calls-subtitle">
+            Each listing contacted, with the full call transcript below.
+          </p>
+          <div className="call-cards call-cards--stacked">
             {dealers.map((d) => {
               const vehicle = vehicles.find(
                 (v) => v.vehicle_id === d.vehicle_id,
@@ -295,12 +337,11 @@ export function AnalyzingView({
                 d.image_urls?.[0] ||
                 PLACEHOLDER_IMG;
               const displayTitle = vehicle?.title || d.title || d.vehicle_id;
-              const isExpanded = expandedTranscript === d.vehicle_id;
 
               return (
                 <div
                   key={d.vehicle_id}
-                  className={`call-card call-card--${d.status}`}
+                  className={`call-card call-card--${d.status} call-card--with-transcript`}
                 >
                   <div className="call-card-top">
                     <img
@@ -329,7 +370,6 @@ export function AnalyzingView({
                     </div>
                   </div>
 
-                  {/* Summary snippet */}
                   {d.summary && (
                     <div className="call-card-summary">
                       <div className="call-summary-row">
@@ -373,27 +413,26 @@ export function AnalyzingView({
                     </div>
                   )}
 
-                  {/* Transcript toggle */}
-                  {d.transcript_text && (
-                    <div className="call-card-transcript-toggle">
-                      <button
-                        type="button"
-                        className="btn-transcript"
-                        onClick={() =>
-                          setExpandedTranscript(
-                            isExpanded ? null : d.vehicle_id,
-                          )
-                        }
-                      >
-                        {isExpanded ? "Hide Transcript" : "Show Transcript"}
-                      </button>
-                      {isExpanded && (
-                        <pre className="call-card-transcript">
-                          {d.transcript_text}
-                        </pre>
-                      )}
-                    </div>
-                  )}
+                  <div className="call-card-transcript-block">
+                    <h4 className="call-card-transcript-heading">
+                      Call transcript
+                    </h4>
+                    {d.transcript_text ? (
+                      <pre className="call-card-transcript call-card-transcript--full">
+                        {d.transcript_text}
+                      </pre>
+                    ) : (
+                      <p className="call-card-transcript-placeholder">
+                        {d.status === "pending" || d.status === "calling"
+                          ? "Waiting for call..."
+                          : d.status === "failed"
+                            ? "No transcript (call failed)."
+                            : d.status === "done"
+                              ? "No transcript (call ended early or no speech captured)."
+                              : "Transcript will appear when the call completes."}
+                      </p>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -441,19 +480,16 @@ export function AnalyzingView({
 }
 
 function RecommendationCard({ vehicle }: { vehicle: TopVehicle }) {
-  const imgSrc = vehicle.image_urls?.[0] || PLACEHOLDER_IMG;
-  const [imgError, setImgError] = useState(false);
   const s = vehicle.call_summary;
 
   return (
     <div className="rec-card">
       <div className="rec-card-rank">#{vehicle.rank}</div>
       <div className="rec-card-img-wrap">
-        <img
-          src={imgError ? PLACEHOLDER_IMG : imgSrc}
+        <VehicleImageSlideshow
+          imageUrls={vehicle.image_urls ?? []}
           alt={vehicle.title}
-          className="rec-card-img"
-          onError={() => setImgError(true)}
+          imgClassName="rec-card-img"
         />
       </div>
       <div className="rec-card-body">

@@ -80,6 +80,28 @@ export function analyzeVehicles(
   return { cancel: () => controller.abort() };
 }
 
+const API_BASE_FOR_FETCH = import.meta.env.VITE_API_URL ?? "";
+
+export interface AnalyzeCallResult {
+  vehicle_id: string;
+  status: "completed" | "failed";
+  transcript_text: string;
+  summary: string | null;
+  call_details: Record<string, unknown> | null;
+}
+
+export async function fetchAnalyzeCalls(
+  sessionId: string,
+): Promise<{ calls: AnalyzeCallResult[] }> {
+  const res = await fetch(
+    `${API_BASE_FOR_FETCH}/api/sessions/${sessionId}/analyze/calls`,
+  );
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status}`);
+  }
+  return res.json() as Promise<{ calls: AnalyzeCallResult[] }>;
+}
+
 export interface AuthUser {
   user_id: string;
   name: string;
@@ -164,9 +186,15 @@ export const api = {
   },
 
   search: {
+    /** Run a new search and persist to MongoDB. Use when user explicitly refreshes from Requirements. */
     cars: (sessionId: string) =>
       request<import("../types").SearchResultsResponse>(
         `/api/sessions/${sessionId}/search/cars`,
+      ),
+    /** Get latest persisted search results (no new search). Use for Recommendations tab. */
+    latest: (sessionId: string) =>
+      request<import("../types").SearchResultsResponse>(
+        `/api/sessions/${sessionId}/search/latest`,
       ),
   },
 

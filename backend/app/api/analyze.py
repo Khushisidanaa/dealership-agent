@@ -31,6 +31,13 @@ from app.models.documents import SearchResultDocument, CommunicationDocument, Se
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/sessions/{session_id}", tags=["analyze"])
 
+
+def _transcript_text_from_comm(c: CommunicationDocument) -> str:
+    if not c.transcript:
+        return ""
+    parts = [t.get("text", "") for t in c.transcript if isinstance(t, dict)]
+    return "".join(parts).strip()
+
 # ---------------------------------------------------------------------------
 # Testing overrides -- change these for demo / hackathon
 # ---------------------------------------------------------------------------
@@ -42,8 +49,10 @@ def _sse_event(event: str, data: dict) -> str:
 
 
 async def _summarize_transcript(vehicle: dict, transcript_text: str) -> dict:
-    """Use OpenAI to extract structured data from a transcript."""
-    settings = get_settings()
+    """Use Bedrock (DeepSeek) to extract structured data from a transcript."""
+    from app.services.bedrock_chat_service import has_bedrock_configured, invoke_converse
+    from app.utils import parse_json_from_llm
+
     prompt_text = build_summary_prompt(
         vehicle_title=vehicle.get("title", ""),
         listing_price=vehicle.get("price", 0),
@@ -51,20 +60,16 @@ async def _summarize_transcript(vehicle: dict, transcript_text: str) -> dict:
         transcript_text=transcript_text,
     )
 
-    from langchain_core.messages import SystemMessage
-    from langchain_openai import ChatOpenAI
-
-    llm = ChatOpenAI(
-        model=settings.openai_model,
-        api_key=settings.openai_api_key,
-        temperature=0.1,
-    )
+    if not has_bedrock_configured():
+        return _basic_parse(vehicle, transcript_text)
 
     try:
-        from app.utils import parse_json_from_llm
-
-        response = llm.invoke([SystemMessage(content=prompt_text)])
-        return parse_json_from_llm(response.content)
+        raw = await invoke_converse(
+            [{"role": "user", "content": prompt_text}],
+            temperature=0.1,
+            max_tokens=2048,
+        )
+        return parse_json_from_llm(raw)
     except Exception as exc:
         log.warning("LLM summary failed for %s: %s -- falling back to basic parse", vehicle.get("vehicle_id"), exc)
         return _basic_parse(vehicle, transcript_text)
@@ -388,3 +393,25 @@ async def analyze_vehicles(session_id: str, request: Request):
             "X-Accel-Buffering": "no",
         },
     )
+
+
+@router.get("/analyze/calls")
+async def get_analyze_calls(session_id: str):
+    """Return call results for this session (from DB). Used by Dealer Calls page to poll for transcripts."""
+    await get_session_or_404(session_id)
+    comms = await CommunicationDocument.find(
+        CommunicationDocument.session_id == session_id,
+        CommunicationDocument.comm_type == "call",
+    ).to_list()
+    return {
+        "calls": [
+            {
+                "vehicle_id": c.vehicle_id,
+                "status": "completed" if c.status == "completed" else "failed",
+                "transcript_text": _transcript_text_from_comm(c),
+                "summary": c.summary,
+                "call_details": c.call_details,
+            }
+            for c in comms
+        ],
+    }

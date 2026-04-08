@@ -1,7 +1,9 @@
 """
-Foxit Document Generation service for dashboard PDF export.
+Foxit Document Generation service (legacy).
 
-Generates a PDF report from dashboard data using the Foxit Document Generation API.
+Dashboard PDF export now uses app.services.dashboard_pdf_service (Bedrock + reportlab).
+This module is kept for the standalone script backend/scripts/foxit_car_recommendations_pdf.py
+and can be removed if that script is migrated to the new PDF service.
 """
 
 import base64

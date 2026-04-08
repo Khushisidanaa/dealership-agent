@@ -8,6 +8,7 @@ import type {
   TopVehicle,
 } from "../types";
 import { TestDriveModal } from "./TestDriveModal";
+import { VehicleImageSlideshow } from "./VehicleImageSlideshow";
 import "./Dashboard.css";
 
 interface DashboardProps {
@@ -15,9 +16,6 @@ interface DashboardProps {
   onBackToChat: () => void;
   top3?: TopVehicle[];
 }
-
-const PLACEHOLDER_IMG =
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='200' fill='%231e2a3a'%3E%3Crect width='320' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%236b7a8f' font-size='14' font-family='system-ui'%3ENo Image%3C/text%3E%3C/svg%3E";
 
 export function Dashboard({
   sessionId,
@@ -35,11 +33,6 @@ export function Dashboard({
   const [testDriveVehicle, setTestDriveVehicle] =
     useState<VehicleResult | null>(null);
   const [bookings, setBookings] = useState<TestDriveBooking[]>([]);
-  const [imgErrors, setImgErrors] = useState<Set<string>>(new Set());
-
-  const handleImgError = useCallback((id: string) => {
-    setImgErrors((prev) => new Set(prev).add(id));
-  }, []);
 
   const loadDashboard = useCallback(async () => {
     setError(null);
@@ -117,11 +110,6 @@ export function Dashboard({
     const c = comms.get(v.vehicle_id);
     return !c || (!c.call_made && !c.text_sent);
   });
-
-  const imgSrc = (v: VehicleResult) =>
-    imgErrors.has(v.vehicle_id)
-      ? PLACEHOLDER_IMG
-      : v.image_urls?.[0] || PLACEHOLDER_IMG;
 
   return (
     <div className="dashboard">
@@ -235,8 +223,6 @@ export function Dashboard({
                   vehicle={v}
                   details={details ?? null}
                   summary={c?.response ?? null}
-                  imgSrc={imgSrc(v)}
-                  onImgError={() => handleImgError(v.vehicle_id)}
                   booking={booking ?? null}
                   onSchedule={() => setTestDriveVehicle(v)}
                   onViewDetail={() => setSelectedCar(v)}
@@ -304,11 +290,10 @@ export function Dashboard({
                   onClick={() => setSelectedCar(v)}
                 >
                   <div className="dashboard-card-img-wrap">
-                    <img
-                      src={imgSrc(v)}
+                    <VehicleImageSlideshow
+                      imageUrls={v.image_urls ?? []}
                       alt={v.title}
-                      className="dashboard-card-img"
-                      onError={() => handleImgError(v.vehicle_id)}
+                      imgClassName="dashboard-card-img"
                     />
                     {booking && (
                       <span className="dashboard-card-badge dashboard-card-badge--booked">
@@ -378,11 +363,10 @@ export function Dashboard({
               x
             </button>
             <div className="dashboard-detail-img-wrap">
-              <img
-                src={imgSrc(selectedCar)}
+              <VehicleImageSlideshow
+                imageUrls={selectedCar.image_urls ?? []}
                 alt={selectedCar.title}
-                className="dashboard-detail-img"
-                onError={() => handleImgError(selectedCar.vehicle_id)}
+                imgClassName="dashboard-detail-img"
               />
             </div>
             <div className="dashboard-detail-body">
@@ -476,8 +460,6 @@ function CallResultCard({
   vehicle,
   details,
   summary,
-  imgSrc,
-  onImgError,
   booking,
   onSchedule,
   onViewDetail,
@@ -485,8 +467,6 @@ function CallResultCard({
   vehicle: VehicleResult;
   details: CallSummary | null;
   summary: string | null;
-  imgSrc: string;
-  onImgError: () => void;
   booking: TestDriveBooking | null;
   onSchedule: () => void;
   onViewDetail: () => void;
@@ -495,7 +475,11 @@ function CallResultCard({
     <div className="db-call-card" onClick={onViewDetail}>
       <div className="db-call-card-left">
         <div className="db-call-card-img-wrap">
-          <img src={imgSrc} alt={vehicle.title} onError={onImgError} />
+          <VehicleImageSlideshow
+            imageUrls={vehicle.image_urls ?? []}
+            alt={vehicle.title}
+            imgClassName="db-call-card-img"
+          />
         </div>
         <div className="db-call-card-vehicle">
           <h4>{vehicle.title}</h4>
@@ -614,16 +598,16 @@ function TopPickCard({
   rank: number;
   onSchedule: () => void;
 }) {
-  const [imgErr, setImgErr] = useState(false);
-  const src = imgErr
-    ? PLACEHOLDER_IMG
-    : pick.image_urls?.[0] || PLACEHOLDER_IMG;
   const s = pick.call_summary;
 
   return (
     <div className="db-top-card">
       <div className="db-top-card-img-wrap">
-        <img src={src} alt={pick.title} onError={() => setImgErr(true)} />
+        <VehicleImageSlideshow
+          imageUrls={pick.image_urls ?? []}
+          alt={pick.title}
+          imgClassName="db-top-card-img"
+        />
         <span className="db-top-rank">#{rank}</span>
       </div>
       <div className="db-top-card-body">

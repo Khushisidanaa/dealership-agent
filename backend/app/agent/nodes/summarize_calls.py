@@ -9,12 +9,12 @@ from __future__ import annotations
 import json
 import logging
 
-from langchain_core.messages import AIMessage, SystemMessage
-from langchain_openai import ChatOpenAI
+from langchain_core.messages import AIMessage
 
 from app.agent.state import AgentState
 from app.agent.prompts.call_summary import build_summary_prompt
 from app.config import get_settings
+from app.services.bedrock_chat_service import has_bedrock_configured, invoke_converse_sync
 
 log = logging.getLogger(__name__)
 
@@ -49,12 +49,7 @@ def summarize_calls(state: AgentState) -> dict:
             "messages": [AIMessage(content="No completed call transcripts to summarize.")],
         }
 
-    has_openai = (
-        settings.openai_api_key
-        and not settings.openai_api_key.startswith("sk-your")
-    )
-
-    if has_openai:
+    if has_bedrock_configured():
         summaries = _llm_summarize(completed_calls, settings)
     else:
         summaries = _stub_summarize(completed_calls)
@@ -75,13 +70,7 @@ def summarize_calls(state: AgentState) -> dict:
 
 
 def _llm_summarize(calls: list[dict], settings) -> list[dict]:
-    """Use OpenAI to extract structured data from each transcript."""
-    llm = ChatOpenAI(
-        model=settings.openai_model,
-        api_key=settings.openai_api_key,
-        temperature=0.1,
-    )
-
+    """Use Bedrock (DeepSeek) to extract structured data from each transcript."""
     from app.utils import parse_json_from_llm
 
     summaries = []
@@ -94,8 +83,12 @@ def _llm_summarize(calls: list[dict], settings) -> list[dict]:
         )
 
         try:
-            response = llm.invoke([SystemMessage(content=prompt_text)])
-            parsed = parse_json_from_llm(response.content)
+            raw = invoke_converse_sync(
+                [{"role": "user", "content": prompt_text}],
+                temperature=0.1,
+                max_tokens=2048,
+            )
+            parsed = parse_json_from_llm(raw)
         except (json.JSONDecodeError, ValueError, Exception) as exc:
             log.warning("Failed to parse summary for %s: %s", call.get("vehicle_id"), exc)
             parsed = {**_EMPTY_SUMMARY, "key_takeaways": "Summary extraction failed."}

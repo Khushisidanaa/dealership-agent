@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import json
 
-from langchain_core.messages import AIMessage, SystemMessage
-from langchain_openai import ChatOpenAI
+from langchain_core.messages import AIMessage
 
 from app.agent.state import AgentState
 from app.config import get_settings
+from app.services.bedrock_chat_service import has_bedrock_configured, invoke_converse_sync
 from app.utils import parse_json_from_llm
 
 
@@ -80,12 +80,7 @@ def final_ranking(state: AgentState) -> dict:
             "messages": [AIMessage(content="No vehicles to rank.")],
         }
 
-    has_openai = (
-        settings.openai_api_key
-        and not settings.openai_api_key.startswith("sk-your")
-    )
-
-    if has_openai and call_summaries:
+    if has_bedrock_configured() and call_summaries:
         return _llm_ranking(shortlisted, call_summaries, preferences, settings)
 
     return _stub_ranking(shortlisted, call_summaries)
@@ -104,16 +99,14 @@ def _llm_ranking(
         preferences_json=json.dumps(preferences, indent=2),
     )
 
-    llm = ChatOpenAI(
-        model=settings.openai_model,
-        api_key=settings.openai_api_key,
+    raw_content = invoke_converse_sync(
+        [{"role": "user", "content": system_text}],
         temperature=0.2,
+        max_tokens=2048,
     )
 
-    response = llm.invoke([SystemMessage(content=system_text)])
-
     try:
-        parsed = parse_json_from_llm(response.content)
+        parsed = parse_json_from_llm(raw_content)
         top3_data = parsed.get("final_top3", [])
         top3_ids = [entry["vehicle_id"] for entry in top3_data[:3]]
     except (json.JSONDecodeError, KeyError):

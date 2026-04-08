@@ -23,3 +23,9 @@ playwright>=1.49.0
 bcrypt>=4.0.0
 requests>=2.31.0
 python-docx>=1.1.0
+boto3>=1.35.0
+reportlab>=4.2.0
+nova-act>=3.0.0
+# Nova Sonic bidirectional stream (Python 3.12+). If your pip index doesn't have it:
+#   pip install --index-url https://pypi.org/simple aws_sdk_bedrock_runtime
+aws_sdk_bedrock_runtime>=0.4.0

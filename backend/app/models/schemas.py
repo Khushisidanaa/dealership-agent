@@ -362,6 +362,7 @@ class CommunicationStatusOut(BaseModel):
     call_made: bool = False
     response: Optional[str] = None
     call_details: Optional[dict] = None
+    transcript_text: Optional[str] = None
 
 
 class DashboardResponse(BaseModel):

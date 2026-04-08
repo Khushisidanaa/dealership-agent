@@ -1,0 +1,184 @@
+User: hello
+
+Agent: Hi there! I'm calling about the 2023 Honda CR-V EX you have listed at Sandy Honda.
+
+Agent: Is that one still available?  And if it is, could you tell me how the condition is?
+
+Agent: Thanks!
+
+Agent: Hi there! I'm calling about the 2023 Honda CR-V EX you have listed at Sandy Honda.
+
+Agent: Is that one still available?  And if it is, could you tell me how the condition is?
+
+Agent: Thanks!
+
+User: yeah the car's still available the condition of the car is perfectly
+
+User: good it was a new title and uh i mean as a
+
+User: fresh title there's no problem with the cars you can come down any time and take a test drive for
+
+User: it
+
+Agent: That's great to hear! So it's a fresh title, which is fantastic.
+
+Agent: Have there been any accidents or major repairs on it?
+
+Agent: And how many previous owners has it had?   Thanks!
+
+Agent: That's great to hear! So it's a fresh title, which is fantastic.
+
+Agent: Have there been any accidents or major repairs on it?
+
+Agent: And how many previous owners has it had?   Thanks!
+
+User: no no
+
+Agent: Perfect, no accidents or major repairs, that's a relief.  How many previous owners has it had?
+
+User: it only had one previous owner and it has
+
+User: had no accidents in the past it's in perfectly good shape
+
+Agent: Perfect, that's exactly what we're looking for. So it's had only one previous owner, which is great.
+
+Agent: And just to confirm, it's had no accidents and is in perfect shape.
+
+Agent: Is there a clean title on it?    And are there any known issues I should be aware of?
+
+Agent: Thanks!
+
+Agent: Perfect, that's exactly what we're looking for. So it's had only one previous owner, which is great.
+
+Agent: And just to confirm, it's had no accidents and is in perfect shape.
+
+Agent: Is there a clean title on it?    And are there any known issues I should be aware of?
+
+Agent: Thanks!
+
+User: yeah it's a clean title as i said and there are
+
+User: no damages no issues with the car whatsoever
+
+Agent: That's reassuring to hear. So it's a clean title with no damages or issues.
+
+Agent: When was the last service done on the car?    And what's the best out-the-door price on that one, including tax and fees?
+
+Agent: Thanks!
+
+Agent: That's reassuring to hear. So it's a clean title with no damages or issues.
+
+Agent: When was the last service done on the car?    And what's the best out-the-door price on that one, including tax and fees?
+
+Agent: Thanks!
+
+User: yeah the car the best outdoor fee is listed on the
+
+User: website and the service was done just a few days ago we changed all
+
+User: the oil we checked the transmission engine codes and everything's in really good
+
+User: shape we changed all the tires too
+
+Agent: That's impressive! The car has been well-maintained, and the service was done recently.
+
+Agent: And the out-the-door price is listed on the website, which is helpful.
+
+Agent: Are there any dealer fees on top of the listed price?
+
+Agent: And are there any promotions or incentives running right now?
+
+Agent: Thanks!
+
+Agent: That's impressive! The car has been well-maintained, and the service was done recently.
+
+Agent: And the out-the-door price is listed on the website, which is helpful.
+
+Agent: Are there any dealer fees on top of the listed price?
+
+Agent: And are there any promotions or incentives running right now?
+
+User: um
+
+Agent: No worries, I understand. Just to clarify, are there any dealer fees on top of the listed price?
+
+Agent: No worries, I understand. Just to clarify, are there any dealer fees on top of the listed price?
+
+User: yeah
+
+Agent: Got it. And are there any promotions or incentives running right now that we should be aware of?
+
+Agent: Got it. And are there any promotions or incentives running right now that we should be aware of?
+
+User: no there's no incentives right now the car is pretty new so
+
+User: i don't think we offer any discounts on that
+
+Agent: Understood. So there are no dealer fees or incentives at the moment.
+
+Agent: Is there any flexibility on the price?    I'm sure Ashwin would appreciate it if we could get the best deal possible.
+
+Agent: Thanks!
+
+Agent: Understood. So there are no dealer fees or incentives at the moment.
+
+Agent: Is there any flexibility on the price?    I'm sure Ashwin would appreciate it if we could get the best deal possible.
+
+Agent: Thanks!
+
+User: uh no there's no room for negotiation as i
+
+User: said it's perfectly new and it's in really good condition so we don't
+
+User: think it's a good idea we don't think it's necessary to negotiate on the price
+
+User: you can come down and take a look at the car anytime you want
+
+Agent: I see, thanks for letting me know. It's understandable that the car is in such good condition.
+
+Agent: Now, regarding financing, do you guys offer it?    And what kind of rates are you seeing right now?
+
+Agent: And is there a way to get pre-approved before I come in?
+
+Agent: I see, thanks for letting me know. It's understandable that the car is in such good condition.
+
+Agent: Now, regarding financing, do you guys offer it?    And what kind of rates are you seeing right now?
+
+Agent: And is there a way to get pre-approved before I come in?
+
+User: not really pre approval is not something we do we need to check your
+
+User: credit history and interest rates run between four percent
+
+User: and nine percent based on your credit score
+
+Agent: Got it, thanks for the information. It's good to know the interest rates range.
+
+Agent: And just to confirm, you don't offer pre-approval for financing, correct?
+
+Agent: Thanks for all the details!
+
+Agent: Got it, thanks for the information. It's good to know the interest rates range.
+
+Agent: And just to confirm, you don't offer pre-approval for financing, correct?
+
+Agent: Thanks for all the details!
+
+User: yes we do not
+
+User: goodbye
+
+Agent: Great, thanks for all your time and the information. I'll pass this along to Ashwin, and they may reach out soon.
+
+Agent: Have a good one!
+
+Agent: Great, thanks for all your time and the information. I'll pass this along to Ashwin, and they may reach out soon.
+
+Agent: Have a good one!
+
+User: you do
+
+Agent: Thank you! Have a great day!
+
+Agent: Thank you! Have a great day!
+

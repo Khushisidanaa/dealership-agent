@@ -1,9 +1,10 @@
 """
-Vehicle listings search endpoint (MarketCheck API).
+Vehicle listings search endpoint (Nova Act or MarketCheck).
 """
 
 from fastapi import APIRouter, HTTPException
 
+from app.api.search import persist_search_results
 from app.api.sessions import get_session_or_404
 from app.models.documents import UserDocument
 from app.models.schemas import (
@@ -11,7 +12,7 @@ from app.models.schemas import (
     VehicleListingSearchResponse,
 )
 from app.models.user_requirements import get_user_requirements
-from app.services.marketcheck_service import search_listings
+from app.services.car_search import search_listings
 
 router = APIRouter(prefix="/api/listings", tags=["listings"])
 
@@ -53,7 +54,7 @@ def _requirements_to_listings_request(prefs: dict) -> VehicleListingSearchReques
 async def get_listings_for_session(session_id: str):
     """
     Search vehicle listings using the session's saved requirements (from chat / requirements modal).
-    Uses MarketCheck API. Use this when the user opens the dashboard.
+    Uses Nova Act or MarketCheck. Use this when the user opens the dashboard.
     """
     session = await get_session_or_404(session_id)
     if not session.user_id:
@@ -87,6 +88,8 @@ async def get_listings_for_session(session_id: str):
             status_code=502,
             detail=f"Listing search failed: {str(e)}",
         ) from e
+    # Persist Nova Act / MarketCheck results to MongoDB (search_results) so dashboard and search stay in sync
+    await persist_search_results(session_id, results, price_stats)
     return VehicleListingSearchResponse(
         results=results,
         total_found=total_found,
@@ -98,7 +101,7 @@ async def get_listings_for_session(session_id: str):
 async def search_vehicle_listings(req: VehicleListingSearchRequest):
     """
     Search vehicle listings by user preferences.
-    Uses MarketCheck API; returns results formatted for frontend display.
+    Uses Nova Act or MarketCheck; returns results formatted for frontend display.
     """
     try:
         results, total_found, price_stats = await search_listings(

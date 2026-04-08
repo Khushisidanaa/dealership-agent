@@ -1,26 +1,34 @@
 # Dealership Agent
 
-**AI-powered car-shopping assistant** — finds listings, calls and texts dealerships on your behalf, analyzes conversations, and recommends the best matches. Get a PDF report with tips for in-person visits and test drives.
+AI-powered car-shopping assistant that gathers your requirements, searches real inventory (cars.com, Facebook Marketplace), validates listings with image analysis, and can call dealerships on your behalf. The agent confirms details with dealers, assesses their responses, and recommends vehicles. Test-drive booking is supported with a background-check PDF report for the make and model.
 
 ---
 
 ## Try it now
 
-**Live demo (hosted on Linode):** [https://tinyurl.com/yd53t4w4](https://tinyurl.com/yd53t4w4)
+**Live demo:** [https://tinyurl.com/znbbpbwd](https://tinyurl.com/znbbpbwd)
+
+To deploy on **AWS EC2**: see [docs/deploy-aws.md](docs/deploy-aws.md).
 
 Scan to open on your phone:
 
-![QR code to live deployment](assets/qr-deployment.png)
+![QR code to live deployment](assets/qr-deployment.svg)
 
 ---
 
-## What it does
+## How it works
 
-- **Guided flow** — Enter preferences (make, model, budget, location). The agent suggests vehicles and runs real inventory search.
-- **Voice & SMS** — Places outbound calls to dealers and sends texts using your context (car, budget, availability).
-- **Call analysis** — Summarizes dealer conversations and ranks vehicles so you see the best options.
-- **Recommendations** — Picks top vehicles and surfaces requirements that matter for your search.
-- **PDF reports** — Generates a report with extra details to keep in mind for in-person visits and test drives. Can also analyze Carfax (or other PDFs) provided by the dealership.
+**Requirements.** A foundation model on AWS (DeepSeek via Amazon Bedrock) gathers and refines your preferences: make, model, budget, location, and other criteria.
+
+**Search.** Car search is handled by Nova Act. It queries cars.com and Facebook Marketplace for vehicles that match your requirements.
+
+**Image validation.** The DeepSeek foundation model reviews listing images to check for issues and alignment with your requirements. Listings that do not match or show problems are rejected at this stage.
+
+**Results.** Data returned by Nova Act is scrubbed, parsed, and shown in the UI so you can browse and shortlist.
+
+**Dealer calls.** If you choose to call a dealership, the app uses Nova Sonic and Twilio to place the call. An AI agent speaks to the dealer, confirms vehicle details, and performs a structured check: it assesses what the dealer says (accuracy and consistency), asks pointed questions, and evaluates their attitude. The agent summarizes the conversation and surfaces the results. It recommends which vehicles are worth your time to check out in person.
+
+**Test drive.** If you want to schedule a test drive, the agent calls the dealership on your behalf to set up the appointment. Once the test drive is confirmed, the DeepSeek model runs a background check on the make and model of the vehicle. It produces a detailed PDF report for you to use at the dealership: points of interest on the car, known issues for that model, recalls to verify in person, and other items to inspect during the test drive.
 
 ---
 
@@ -28,10 +36,10 @@ Scan to open on your phone:
 
 | Layer | Technology |
 |-------|------------|
-| **Voice (AI)** | [Deepgram](https://deepgram.com/) — STT/TTS for natural dealer calls |
-| **Calls & SMS** | [Twilio](https://www.twilio.com/) — outbound calls and texting |
-| **Analysis & chat** | **OpenAI GPT-4** — analyzes calls, texts, recommends cards, finds good requirements |
-| **PDFs & docs** | [Foxit](https://www.foxit.com/) — PDF generation for user-facing reports; document analysis for Carfax and other dealer-provided PDFs |
+| **Foundation model** | Amazon Bedrock (DeepSeek) — requirements extraction, image review, call summaries, rankings, PDF report content |
+| **Car search** | AWS Nova Act — browser automation to cars.com and Facebook Marketplace; results scrubbed and parsed |
+| **Voice (dealer calls)** | Amazon Nova Sonic — real-time voice agent for outbound dealer calls; Twilio for telephony |
+| **Calls and SMS** | Twilio — outbound calls and messaging |
 | **Backend** | Python, FastAPI, WebSockets |
 | **Frontend** | React (Vite), TypeScript |
 | **Database** | MongoDB (Motor + Beanie ODM) |
@@ -43,12 +51,12 @@ Scan to open on your phone:
 ### Prerequisites
 
 - **Python 3** (virtual env recommended)
-- **Node.js & npm**
-- **MongoDB** — use Docker for local, or point to your own deployment
+- **Node.js** and **npm**
+- **MongoDB** — Docker for local, or your own deployment
 
-### 1. Get API keys
+### 1. Get API keys and config
 
-Ask the devs for the `.env` variables. Copy them into `backend/.env` (you can start from `backend/.env.example`). You’ll need keys for OpenAI, Twilio, Deepgram, and optionally Foxit.
+Copy `backend/.env.example` to `backend/.env` and fill in the values. You will need AWS credentials (for Bedrock, Nova Act, and Nova Sonic), Twilio keys, and optionally Deepgram (fallback voice) and Foxit (PDF services).
 
 ### 2. One-time setup
 
@@ -73,7 +81,7 @@ make mongo-local
 ```
 
 **Option B — Your own Mongo:**  
-Set `MONGODB_URI` in `backend/.env` to your deployment.
+Set `MONGODB_URL` in `backend/.env` to your deployment.
 
 ### 4. Run the app
 
@@ -123,7 +131,7 @@ For API-only local testing: `make mongo-local` then `make run` (backend on port 
 | **Dashboard** | | |
 | POST | `/api/sessions/{session_id}/shortlist` | Shortlist vehicles |
 | GET | `/api/sessions/{session_id}/dashboard` | Dashboard data |
-| GET | `/api/sessions/{session_id}/export-pdf` | Export dashboard PDF (Foxit) |
+| GET | `/api/sessions/{session_id}/export-pdf` | Export dashboard PDF |
 | **Analyze & recommendations** | | |
 | POST | `/api/sessions/{session_id}/analyze` | Call dealers, summarize, rank (SSE) |
 | POST | `/api/sessions/{session_id}/recommendations/pick-best-two` | Pick best two |
@@ -159,15 +167,14 @@ For API-only local testing: `make mongo-local` then `make run` (backend on port 
 
 ## Environment variables (summary)
 
-In `backend/.env` (get values from devs or `.env.example`):
+In `backend/.env` (see `backend/.env.example` for full list):
 
-- **OpenAI** — `OPENAI_API_KEY`
+- **AWS / Bedrock (DeepSeek)** — `BEDROCK_CHAT_MODEL_ID`, `BEDROCK_REGION`; use `ACCESS_KEY` / `SECRET_ACCRESS_KEY` or `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`
+- **Nova Act (car search)** — Set `CAR_SEARCH_PROVIDER=nova_act`. For real listings from cars.com and Facebook Marketplace, configure `NOVA_ACT_WORKFLOW_NAME`, `NOVA_ACT_RESULT_S3_BUCKET`, and `NOVA_ACT_RESULT_S3_PREFIX` after deploying the workflow. Without the workflow, the backend uses Bedrock-only synthetic listings.
+- **Nova Sonic (voice)** — Uses the same AWS credentials; optional `NOVA_SONIC_MODEL_ID`, `NOVA_SONIC_REGION`
 - **Twilio** — `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`
-- **Deepgram** — `DEEPGRAM_API_KEY`
-- **Foxit** — `FOXIT_CLIENT_ID`, `FOXIT_CLIENT_SECRET`, `FOXIT_API_HOST` (optional)
+- **Deepgram** — `DEEPGRAM_API_KEY` (optional fallback when Nova Sonic is not configured)
 - **Server** — `SERVER_BASE_URL` (public backend URL for Twilio webhooks; e.g. ngrok for local)
-- **MongoDB** — `MONGODB_URI` (optional; default/local uses Docker)
-
----
-
-*Built for the hackathon — happy judging.*
+- **MongoDB** — `MONGODB_URL` (optional; default/local uses Docker)
+- **Foxit** — `FOXIT_CLIENT_ID`, `FOXIT_CLIENT_SECRET`, `FOXIT_API_HOST` (optional; PDF generation)
+- **MarketCheck** — `CAR_SEARCH_PROVIDER=marketcheck` and `MARKETCHECK_API_KEY` (optional fallback when Nova Act returns no results)

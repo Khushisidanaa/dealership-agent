@@ -1,4 +1,4 @@
-"""Node: contact_dealers -- calls shortlisted dealers using Twilio + Deepgram.
+"""Node: contact_dealers -- calls shortlisted dealers using Twilio + voice agent (Nova Sonic or Deepgram).
 
 For each shortlisted vehicle, builds a context-rich prompt and fires off
 a voice call via the existing /api/voice/call endpoint. Collects call_ids
@@ -19,6 +19,7 @@ from app.agent.prompts.dealer_call import (
     build_dealer_call_greeting,
 )
 from app.config import get_settings
+from app.services.nova_sonic_service import has_nova_sonic_configured
 
 log = logging.getLogger(__name__)
 
@@ -88,11 +89,11 @@ def contact_dealers(state: AgentState) -> dict:
         and settings.twilio_auth_token
         and settings.twilio_phone_number
     )
-    has_deepgram = bool(settings.deepgram_api_key)
+    has_voice = has_nova_sonic_configured() or bool(settings.deepgram_api_key)
     base_url = settings.server_base_url.rstrip("/")
     has_valid_url = base_url.startswith("http") and "your-subdomain" not in base_url
 
-    if not (has_twilio and has_deepgram and has_valid_url):
+    if not (has_twilio and has_voice and has_valid_url):
         return _stub_calls(shortlisted, preferences)
 
     return _real_calls(shortlisted, preferences, base_url)

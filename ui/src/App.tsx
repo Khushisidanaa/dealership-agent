@@ -43,6 +43,7 @@ function App() {
   const [startTab, setStartTab] = useState<StartTab>("chat");
   const [isChatOpen, setIsChatOpen] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [searchInProgress, setSearchInProgress] = useState(false);
   const [requirements, setRequirements] = useState<Record<string, unknown>>(
     getDefaultRequirements,
   );
@@ -193,25 +194,41 @@ function App() {
     [sessionId],
   );
 
-  const handleGoToResults = useCallback(() => {
-    if (phase === "results") {
+  const handleGoToResults = useCallback(async () => {
+    setSearchInProgress(true);
+    try {
+      await api.search.cars(sessionId!);
       setRefreshKey((k) => k + 1);
-      return;
+      if (phase === "chat") {
+        markPhaseCompleted("chat");
+        setPhase("results");
+      }
+    } catch {
+      // Leave phase unchanged; RecommendationsView will show error if opened
+    } finally {
+      setSearchInProgress(false);
     }
-    markPhaseCompleted("chat");
-    setPhase("results");
-  }, [phase, markPhaseCompleted]);
+  }, [sessionId, phase, markPhaseCompleted]);
 
   const handleBackToRequirements = useCallback(() => {
     setIsRequirementsComplete(false);
     setPhase("chat");
   }, []);
 
-  const handleFormSearchDone = useCallback(() => {
+  const handleFormSearchDone = useCallback(async () => {
+    setSearchInProgress(true);
+    try {
+      await api.search.cars(sessionId!);
+      setRefreshKey((k) => k + 1);
+    } catch {
+      // continue to results; user can refresh from sidebar
+    } finally {
+      setSearchInProgress(false);
+    }
     setIsRequirementsComplete(true);
     markPhaseCompleted("chat");
     setPhase("results");
-  }, [markPhaseCompleted]);
+  }, [sessionId, markPhaseCompleted]);
 
   const handleStartCalling = useCallback(
     (vehicles: VehicleResult[]) => {
@@ -591,6 +608,12 @@ function App() {
         <main
           className={`app-content ${isDashboard ? "app-content--full" : ""}`}
         >
+          {searchInProgress && (
+            <div className="app-search-overlay" aria-live="polite" aria-busy="true">
+              <div className="app-search-overlay-spinner" />
+              <p className="app-search-overlay-text">Searching for vehicles...</p>
+            </div>
+          )}
           {phase === "chat" && (
             <div className="app-start-area">
               <div className="app-start-tabs">

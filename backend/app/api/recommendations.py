@@ -8,13 +8,12 @@ import json
 import logging
 
 from fastapi import APIRouter, HTTPException
-from langchain_core.messages import SystemMessage
-from langchain_openai import ChatOpenAI
 
 from app.api.sessions import get_session_or_404
 from app.config import get_settings
 from app.models.documents import SearchResultDocument
 from app.models.user_requirements import get_user_requirements
+from app.services.bedrock_chat_service import has_bedrock_configured, invoke_converse_sync
 from app.utils import parse_json_from_llm
 
 log = logging.getLogger(__name__)
@@ -80,11 +79,7 @@ async def pick_best_two(session_id: str):
     vehicles = search_doc.vehicles
     vehicles_csv = _vehicles_to_csv(vehicles)
 
-    settings = get_settings()
-    key = (settings.openai_api_key or "").strip()
-    has_openai = bool(key and not key.startswith("sk-your"))
-
-    if not has_openai:
+    if not has_bedrock_configured():
         # Stub: return first 2 by rank
         top2 = sorted(vehicles, key=lambda v: v.get("rank", 999))[:2]
         return {"vehicle_ids": [v.get("vehicle_id", "") for v in top2 if v.get("vehicle_id")]}
@@ -95,13 +90,12 @@ async def pick_best_two(session_id: str):
     )
 
     try:
-        llm = ChatOpenAI(
-            model=settings.openai_model,
-            api_key=settings.openai_api_key,
+        raw = invoke_converse_sync(
+            [{"role": "user", "content": system_text}],
             temperature=0.2,
+            max_tokens=1024,
         )
-        response = llm.invoke([SystemMessage(content=system_text)])
-        parsed = parse_json_from_llm(response.content)
+        parsed = parse_json_from_llm(raw)
         raw_ids = parsed.get("vehicle_ids") or []
         # Ensure we only return IDs that exist in our list
         valid_ids = {v.get("vehicle_id") for v in vehicles if v.get("vehicle_id")}

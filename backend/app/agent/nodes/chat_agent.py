@@ -2,20 +2,36 @@
 
 import json
 
-from langchain_core.messages import AIMessage, SystemMessage
-from langchain_openai import ChatOpenAI
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from app.agent.state import AgentState
 from app.agent.prompts.chat_system import CHAT_SYSTEM_PROMPT
 from app.config import get_settings
+from app.services.bedrock_chat_service import has_bedrock_configured, invoke_converse_sync
 from app.utils import parse_json_from_llm
+
+
+def _messages_to_bedrock(messages: list) -> list[dict]:
+    """Convert LangChain messages to Bedrock Converse format."""
+    out = []
+    for m in messages:
+        role = "user"
+        if isinstance(m, HumanMessage):
+            role = "user"
+        elif isinstance(m, AIMessage):
+            role = "assistant"
+        else:
+            continue
+        content = getattr(m, "content", "") or ""
+        out.append({"role": role, "content": content})
+    return out
 
 
 def chat_agent(state: AgentState) -> dict:
     """Invoke the LLM to refine preferences through conversation.
 
-    Reads the current messages, sends them with a system prompt, and parses
-    the structured JSON reply to extract updated_filters and readiness.
+    Uses Amazon Bedrock (DeepSeek). Reads current messages, sends with system prompt,
+    parses structured JSON reply for updated_filters and readiness.
     """
     settings = get_settings()
     preferences = state.get("preferences", {})
@@ -26,19 +42,20 @@ def chat_agent(state: AgentState) -> dict:
         additional_filters=json.dumps(additional_filters, indent=2),
     )
 
-    if not settings.openai_api_key or settings.openai_api_key.startswith("sk-your"):
+    if not has_bedrock_configured():
         return _stub_reply(state)
 
-    llm = ChatOpenAI(
-        model=settings.openai_model,
-        api_key=settings.openai_api_key,
+    conversation = list(state.get("messages", []))
+    bedrock_messages = _messages_to_bedrock(conversation)
+    if not bedrock_messages:
+        bedrock_messages = [{"role": "user", "content": "Hi, I'm ready to refine my search."}]
+
+    raw_content = invoke_converse_sync(
+        bedrock_messages,
+        system=system_text,
         temperature=0.7,
+        max_tokens=2048,
     )
-
-    conversation = [SystemMessage(content=system_text)] + list(state.get("messages", []))
-
-    response = llm.invoke(conversation)
-    raw_content = response.content
 
     try:
         parsed = parse_json_from_llm(raw_content)
@@ -66,7 +83,7 @@ def chat_agent(state: AgentState) -> dict:
 
 
 def _stub_reply(state: AgentState) -> dict:
-    """Fallback when no OpenAI key is configured."""
+    """Fallback when Bedrock is not configured."""
     additional_filters = state.get("additional_filters", {})
     messages = state.get("messages", [])
 
@@ -78,7 +95,7 @@ def _stub_reply(state: AgentState) -> dict:
         reply = (
             "I'd love to help refine your search! "
             "What color do you prefer? Any must-have features like sunroof or leather seats? "
-            "(Note: running in stub mode -- no OpenAI key configured)"
+            "(Note: running in stub mode -- Bedrock not configured)"
         )
     else:
         reply = (

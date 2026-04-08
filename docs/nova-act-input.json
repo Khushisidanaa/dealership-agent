@@ -1,0 +1,14 @@
+{
+  "make": "Honda",
+  "model": "Civic",
+  "year": null,
+  "year_min": 2020,
+  "year_max": 2024,
+  "zip_code": "90210",
+  "radius_miles": 50,
+  "car_type": "used",
+  "price_min": 15000,
+  "price_max": 35000,
+  "max_mileage": 60000,
+  "rows": 10
+}

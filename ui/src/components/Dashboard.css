@@ -198,6 +198,7 @@
 }
 
 .db-call-card-img-wrap {
+  position: relative;
   width: 100%;
   aspect-ratio: 16 / 10;
   border-radius: var(--radius-sm);
@@ -672,10 +673,19 @@
 }
 
 .dashboard-detail-img-wrap {
+  position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
   background: var(--bg-tertiary);
   overflow: hidden;
+}
+
+.dashboard-card-img-wrap .vehicle-slideshow,
+.db-call-card-img-wrap .vehicle-slideshow,
+.db-top-card-img-wrap .vehicle-slideshow,
+.dashboard-detail-img-wrap .vehicle-slideshow {
+  position: absolute;
+  inset: 0;
 }
 
 .dashboard-detail-img {

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { api } from "../api/client";
 import type { VehicleResult } from "../types";
+import { VehicleImageSlideshow } from "./VehicleImageSlideshow";
 import "./SearchResults.css";
 
 interface SearchResultsProps {
@@ -8,9 +9,6 @@ interface SearchResultsProps {
   onStartCalling: (vehicles: VehicleResult[]) => void;
   onBack: () => void;
 }
-
-const PLACEHOLDER_IMG =
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='260' fill='%231e2a3a'%3E%3Crect width='400' height='260'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%236b7a8f' font-size='18' font-family='system-ui'%3ENo Image%3C/text%3E%3C/svg%3E";
 
 export function SearchResults({
   sessionId,
@@ -106,20 +104,13 @@ export function SearchResults({
 }
 
 function VehicleCard({ vehicle }: { vehicle: VehicleResult }) {
-  const imgSrc =
-    vehicle.image_urls?.length > 0 ? vehicle.image_urls[0] : PLACEHOLDER_IMG;
-
-  const [imgError, setImgError] = useState(false);
-
   return (
     <div className="vehicle-card">
       <div className="vehicle-card-img-wrap">
-        <img
-          src={imgError ? PLACEHOLDER_IMG : imgSrc}
+        <VehicleImageSlideshow
+          imageUrls={vehicle.image_urls ?? []}
           alt={vehicle.title}
-          className="vehicle-card-img"
-          onError={() => setImgError(true)}
-          loading="lazy"
+          imgClassName="vehicle-card-img"
         />
         {vehicle.condition && (
           <span className="vehicle-card-badge">{vehicle.condition}</span>
